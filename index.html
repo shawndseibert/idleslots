@@ -272,7 +272,7 @@
 
         // --- Game Logic Variables ---
         let isSpinning = false;
-        let audioInitialized = false;
+        let isAudioReady = false;
         let coinInterval;
         let autoSpinnerInterval;
         let isFrenzyActive = false;
@@ -352,7 +352,12 @@
         }
 
         // --- Core Game Logic ---
-        async function initializeAudio() { if (!audioInitialized) { await Tone.start(); audioInitialized = true; } }
+        async function initializeAudio() { 
+            if (!isAudioReady) {
+                await Tone.start(); 
+                isAudioReady = true; 
+            }
+        }
         function updateBalanceDisplay() {
             balanceDisplay.textContent = `$${Math.floor(balance)}`;
             if (!isSpinning) { spinButton.disabled = balance < spinCost; }
@@ -374,11 +379,11 @@
         function spin(options = {}) {
             const { isFree = false, isChain = false, chainMultiplier = 1 } = options;
             if (isSpinning || (balance < spinCost && !isFree)) {
-                if(balance < spinCost && !isSpinning && !isFree) { errorSynth.triggerAttackRelease("C2", "8n"); showMessage("Not enough money!", 'text-red-400'); }
+                if(balance < spinCost && !isSpinning && !isFree) { if(isAudioReady) errorSynth.triggerAttackRelease("C2", "8n"); showMessage("Not enough money!", 'text-red-400'); }
                 return;
             }
             hideGambleButton();
-            membraneSynth.triggerAttackRelease("C4", "8n", Tone.now());
+            if(isAudioReady) membraneSynth.triggerAttackRelease("C4", "8n", Tone.now());
             isSpinning = true; 
             if (!isFree) { balance -= spinCost; }
             spinButton.disabled = true; updateBalanceDisplay();
@@ -399,7 +404,7 @@
 
         function stopReel(reelIndex, finalSymbol, intervalId, callback) {
             clearInterval(intervalId);
-            membraneSynth.triggerAttackRelease("C3", "8n", Tone.now());
+            if(isAudioReady) membraneSynth.triggerAttackRelease("C3", "8n", Tone.now());
             slotElements[reelIndex].innerHTML = `<span class="${finalSymbol.isSuper ? 'super-symbol' : ''}">${finalSymbol.emoji}</span>`;
             if (callback) callback();
         }
@@ -486,21 +491,25 @@
                 const oldIntensity = Math.floor(wins / 10);
                 balance += winnings; wins++; updateWinCounter();
                 const newIntensity = Math.floor(wins / 10);
-                if (newIntensity > oldIntensity) { levelUpSynth.triggerAttackRelease("C5", "4n"); showMessage(`Intensity Up!`, 'text-pink-400', 2500); }
+                if (newIntensity > oldIntensity) { if(isAudioReady) levelUpSynth.triggerAttackRelease("C5", "4n"); showMessage(`Intensity Up!`, 'text-pink-400', 2500); }
                 updateIntensity();
                 showGambleButton(winnings);
 
                 if (winType === 'jackpot') {
                     let jackpotMessage = isChain ? `Chain x${chainMultiplier}! +$${Math.floor(winnings)}` : `Jackpot! +$${Math.floor(winnings)}`;
                     showMessage(jackpotMessage, 'text-green-400', 3000); triggerWinAnimation(winningReels, 'jackpot-glow');
-                    const now = Tone.now(); jackpotSynth.triggerAttackRelease(["C4", "E4", "G4"], "8n", now);
+                    if(isAudioReady) {
+                        const now = Tone.now(); jackpotSynth.triggerAttackRelease(["C4", "E4", "G4"], "8n", now);
+                    }
                     if (powerUps.jackpotChain.level > 0 && Math.random() < powerUps.jackpotChain.level * 0.05) {
                         setTimeout(() => spin({ isFree: true, isChain: true, chainMultiplier: chainMultiplier * 2 }), 1500);
                     }
                 } else {
                     showMessage(`+ $${Math.floor(winnings)}`, 'text-blue-400'); triggerWinAnimation(winningReels, 'win-pulse');
-                    winSynth.harmonicity = 5.1 + newIntensity * 1.5; winSynth.frequency.value = 250 + newIntensity * 25;
-                    winSynth.triggerAttackRelease("C5", "8n", Tone.now());
+                    if(isAudioReady) {
+                        winSynth.harmonicity = 5.1 + newIntensity * 1.5; winSynth.frequency.value = 250 + newIntensity * 25;
+                        winSynth.triggerAttackRelease("C5", "8n", Tone.now());
+                    }
                 }
                 saveGameState();
             }
@@ -537,7 +546,7 @@
             const pu = powerUps[key];
             if (balance >= pu.cost) {
                 balance -= pu.cost;
-                purchaseSynth.triggerAttackRelease("C5", "8n");
+                if(isAudioReady) purchaseSynth.triggerAttackRelease("C5", "8n");
                 if (pu.hasOwnProperty('level')) {
                     pu.level++;
                     pu.cost *= 1.4;
@@ -569,8 +578,10 @@
             if (isFrenzyActive || powerUps.frenzyToken.count <= 0) return;
             isFrenzyActive = true;
             powerUps.frenzyToken.count--;
-            frenzyPattern = new Tone.Pattern((time, note) => { frenzySynth.triggerAttackRelease(note, '16n', time); }, ["C4", "E4", "G4", "C5"], "up").start(0);
-            Tone.Transport.start();
+            if(isAudioReady) {
+                frenzyPattern = new Tone.Pattern((time, note) => { frenzySynth.triggerAttackRelease(note, '16n', time); }, ["C4", "E4", "G4", "C5"], "up").start(0);
+                Tone.Transport.start();
+            }
             const frenzySpinInterval = setInterval(() => spin({isFree: true}), 300);
             const originalIntensity = Math.floor(wins / 10);
             const frenzyIntensity = originalIntensity + 5;
@@ -582,8 +593,10 @@
             setTimeout(() => {
                 isFrenzyActive = false;
                 clearInterval(frenzySpinInterval);
-                frenzyPattern.stop();
-                Tone.Transport.stop();
+                if(isAudioReady) {
+                    frenzyPattern.stop();
+                    Tone.Transport.stop();
+                }
                 particleGlow.level = originalIntensity;
                 createParticles(originalIntensity);
                 frenzyBtn.disabled = false;
@@ -596,7 +609,7 @@
         function prestige() {
             if (wins < 100) return;
             prestigeLevel++;
-            prestigeSynth.triggerAttackRelease("C4", "2s");
+            if(isAudioReady) prestigeSynth.triggerAttackRelease("C4", "2s");
             showMessage(`Prestiged! All earnings now +${prestigeLevel * 25}%`, 'text-cyan-400', 5000);
             fullReset(true);
         }
@@ -697,7 +710,6 @@
         storeMenuOverlay.addEventListener('click', () => toggleMenu(storeMenu, storeMenuOverlay));
         prestigeButton.addEventListener('click', prestige);
         settingsButton.addEventListener('click', () => {
-            // Reset confirmation view before opening
             document.getElementById('settings-options').classList.remove('hidden');
             document.getElementById('reset-confirmation').classList.add('hidden');
             toggleMenu(settingsMenu, settingsMenuOverlay);
@@ -775,13 +787,14 @@
         
         // --- Initialization ---
         window.onload = () => {
+            resizeCanvas(); 
             loadGameState();
             spinButton.addEventListener('click', () => spin());
             startIdleIncome();
-            resizeCanvas(); 
             animateParticles(); 
             showMessage("Click Spin to Start!", "text-yellow-300", 3000);
         };
+        document.body.addEventListener('click', initializeAudio, { once: true });
         window.onresize = resizeCanvas;
         const originalUpdateIntensity = updateIntensity;
         updateIntensity = () => {
