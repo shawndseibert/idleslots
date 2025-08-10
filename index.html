@@ -42,12 +42,12 @@
             top: 0;
             transition: top 0.1s ease-in-out;
         }
-        .spin-button, .stats-panel, .slot, .store-button, .frenzy-button, .prestige-button {
+        .spin-button, .stats-panel, .slot, .store-button, .frenzy-button, .prestige-button, .settings-button {
             transition: all 0.3s ease;
             position: relative;
             z-index: 10;
         }
-        .spin-button:active, .store-button:active, .frenzy-button:active, .prestige-button:active {
+        .spin-button:active, .store-button:active, .frenzy-button:active, .prestige-button:active, .settings-button:active {
             transform: translateY(2px);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
         }
@@ -148,12 +148,17 @@
         <div id="message" class="message-box text-center text-xl font-semibold h-8 mb-4"></div>
 
         <div class="flex space-x-4">
-            <button id="spinButton" class="spin-button w-2/3 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-4 px-4 rounded-lg text-2xl shadow-lg focus:outline-none focus:ring-4 focus:ring-yellow-300 disabled:bg-gray-600 disabled:cursor-not-allowed">
+            <button id="spinButton" class="spin-button w-1/2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-4 px-4 rounded-lg text-2xl shadow-lg focus:outline-none focus:ring-4 focus:ring-yellow-300 disabled:bg-gray-600 disabled:cursor-not-allowed">
                 Spin ($5)
             </button>
-            <button id="storeButton" class="store-button w-1/3 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-4 rounded-lg text-2xl shadow-lg focus:outline-none focus:ring-4 focus:ring-purple-400">
-                Store
-            </button>
+            <div class="flex w-1/2 space-x-4">
+                <button id="storeButton" class="store-button w-1/2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-4 rounded-lg text-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-purple-400">
+                    Store
+                </button>
+                <button id="settingsButton" class="settings-button w-1/2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-4 rounded-lg text-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-gray-400">
+                    Settings
+                </button>
+            </div>
         </div>
         <div id="action-buttons" class="flex space-x-4 mt-4">
             <!-- Gamble and Frenzy buttons will appear here -->
@@ -181,6 +186,22 @@
         <h3 class="text-2xl font-bold text-purple-400 mb-4 text-center">Power-Up Store</h3>
         <div id="power-ups-container" class="space-y-4"></div>
         <button id="store-close" class="mt-6 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Close</button>
+    </div>
+
+    <div id="settings-menu-overlay" class="modal-overlay hidden"></div>
+    <div id="settings-menu" class="menu hidden">
+        <h3 class="text-2xl font-bold text-gray-400 mb-4 text-center">Settings</h3>
+        <div id="settings-options">
+            <button id="reset-progress-button" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Reset Game Progress</button>
+        </div>
+        <div id="reset-confirmation" class="hidden">
+            <p class="text-center text-red-400 mb-2">Are you sure? This cannot be undone.</p>
+            <div class="flex space-x-2">
+                <button id="confirm-reset-button" class="w-1/2 bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-4 rounded">Confirm</button>
+                <button id="cancel-reset-button" class="w-1/2 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Cancel</button>
+            </div>
+        </div>
+        <button id="settings-close" class="mt-6 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Close</button>
     </div>
 
     <div id="gamble-menu-overlay" class="modal-overlay hidden"></div>
@@ -223,6 +244,7 @@
         const slotElements = slotElementsWithParents.map(el => el.querySelector('.slot-inner'));
         const spinButton = document.getElementById('spinButton');
         const storeButton = document.getElementById('storeButton');
+        const settingsButton = document.getElementById('settingsButton');
         const actionButtonsContainer = document.getElementById('action-buttons');
         const prestigeButton = document.getElementById('prestigeButton');
         const messageBox = document.getElementById('message');
@@ -230,6 +252,8 @@
         const devMenuOverlay = document.getElementById('dev-menu-overlay');
         const storeMenu = document.getElementById('store-menu');
         const storeMenuOverlay = document.getElementById('store-menu-overlay');
+        const settingsMenu = document.getElementById('settings-menu');
+        const settingsMenuOverlay = document.getElementById('settings-menu-overlay');
         const gambleMenu = document.getElementById('gamble-menu');
         const gambleMenuOverlay = document.getElementById('gamble-menu-overlay');
         const powerUpsContainer = document.getElementById('power-ups-container');
@@ -672,6 +696,27 @@
         document.getElementById('store-close').addEventListener('click', () => toggleMenu(storeMenu, storeMenuOverlay));
         storeMenuOverlay.addEventListener('click', () => toggleMenu(storeMenu, storeMenuOverlay));
         prestigeButton.addEventListener('click', prestige);
+        settingsButton.addEventListener('click', () => {
+            // Reset confirmation view before opening
+            document.getElementById('settings-options').classList.remove('hidden');
+            document.getElementById('reset-confirmation').classList.add('hidden');
+            toggleMenu(settingsMenu, settingsMenuOverlay);
+        });
+        document.getElementById('settings-close').addEventListener('click', () => toggleMenu(settingsMenu, settingsMenuOverlay));
+        settingsMenuOverlay.addEventListener('click', () => toggleMenu(settingsMenu, settingsMenuOverlay));
+        document.getElementById('reset-progress-button').addEventListener('click', () => {
+            document.getElementById('settings-options').classList.add('hidden');
+            document.getElementById('reset-confirmation').classList.remove('hidden');
+        });
+        document.getElementById('cancel-reset-button').addEventListener('click', () => {
+            document.getElementById('settings-options').classList.remove('hidden');
+            document.getElementById('reset-confirmation').classList.add('hidden');
+        });
+        document.getElementById('confirm-reset-button').addEventListener('click', () => {
+            fullReset(false);
+            toggleMenu(settingsMenu, settingsMenuOverlay);
+        });
+
 
         // --- Dev Menu Logic ---
         let dKeyPresses = 0; let dKeyPressTimer;
