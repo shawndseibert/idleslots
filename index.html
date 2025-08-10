@@ -124,7 +124,6 @@
 
     <div id="game-container" class="bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 border-2 transition-all duration-500 relative" style="z-index: 100;">
         
-        <div id="user-id-display" class="text-center text-xs text-gray-500 mb-2 truncate">Connecting...</div>
         <h1 class="text-4xl font-bold text-center mb-2">Idle Slots</h1>
         <p id="prestige-display" class="text-center text-cyan-400 mb-4 h-5"></p>
 
@@ -195,12 +194,7 @@
         <button id="gamble-collect" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Collect</button>
     </div>
 
-    <script type="module">
-        // --- Firebase Imports ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    <script>
         // --- Game State Variables ---
         let balance = 100;
         let spinCost = 5;
@@ -225,7 +219,6 @@
         const balanceDisplay = document.getElementById('balance');
         const winCounter = document.getElementById('win-counter');
         const prestigeDisplay = document.getElementById('prestige-display');
-        const userIdDisplay = document.getElementById('user-id-display');
         const slotElementsWithParents = Array.from(document.querySelectorAll('.slot'));
         const slotElements = slotElementsWithParents.map(el => el.querySelector('.slot-inner'));
         const spinButton = document.getElementById('spinButton');
@@ -262,9 +255,6 @@
         let gambleAmount = 0;
         let milestones = {};
         const intensityColors = ['#4f46e5', '#db2777', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
-
-        // --- Firebase State ---
-        let db, auth, userId, docRef;
         let saveTimeout;
 
         // --- Power-Ups & Milestones ---
@@ -286,52 +276,52 @@
             };
         }
         
-        // --- Firebase Functions ---
-        async function saveGameState() {
-            if (!userId) return;
+        // --- localStorage Functions ---
+        function saveGameState() {
             clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(async () => {
+            saveTimeout = setTimeout(() => {
                 const gameState = {
                     balance, wins, idleIncome, prestigeLevel, powerUps, milestones, baseSymbols
                 };
-                try {
-                    await setDoc(docRef, gameState, { merge: true });
-                } catch (error) {
-                    console.error("Error saving game state: ", error);
-                }
-            }, 1000); // Debounce saving to prevent too many writes
+                localStorage.setItem('idleSlotMachineSave', JSON.stringify(gameState));
+            }, 500); // Debounce saving
         }
 
-        function loadGameState(data) {
-            balance = data.balance ?? 100;
-            wins = data.wins ?? 0;
-            idleIncome = data.idleIncome ?? 1;
-            prestigeLevel = data.prestigeLevel ?? 0;
-            powerUps = data.powerUps ?? powerUps;
-            milestones = data.milestones ?? milestones;
-            baseSymbols = data.baseSymbols ?? baseSymbols;
+        function loadGameState() {
+            const savedData = localStorage.getItem('idleSlotMachineSave');
+            if (savedData) {
+                const gameState = JSON.parse(savedData);
+                balance = gameState.balance ?? 100;
+                wins = gameState.wins ?? 0;
+                idleIncome = gameState.idleIncome ?? 1;
+                prestigeLevel = gameState.prestigeLevel ?? 0;
+                powerUps = gameState.powerUps ?? powerUps;
+                milestones = gameState.milestones ?? milestones;
+                baseSymbols = gameState.baseSymbols ?? baseSymbols;
             
-            // Re-apply loaded state
-            if (powerUps.autoSpinner.level > 0) {
-                const autoSpinSpeed = Math.max(400, 3000 - (powerUps.autoSpinner.level - 1) * 400);
-                autoSpinnerInterval = setInterval(spin, autoSpinSpeed);
-                spinButton.textContent = 'Auto';
+                // Re-apply loaded state
+                if (powerUps.autoSpinner.level > 0) {
+                    const autoSpinSpeed = Math.max(400, 3000 - (powerUps.autoSpinner.level - 1) * 400);
+                    autoSpinnerInterval = setInterval(spin, autoSpinSpeed);
+                    spinButton.textContent = 'Auto';
+                }
+                if (powerUps.symbolMagnet.level > 0) {
+                    weightedSymbols = [...baseSymbols];
+                    const diamond = baseSymbols.find(s => s.emoji === '💎');
+                    for (let i = 0; i < powerUps.symbolMagnet.level * 2; i++) weightedSymbols.push(diamond);
+                }
+                if (powerUps.frenzyToken.count > 0) {
+                    const frenzyBtn = document.getElementById('frenzyButton') || createActionButton('frenzyButton', 'Activate Frenzy', 'bg-red-600', startFrenzy);
+                    frenzyBtn.classList.remove('hidden');
+                    frenzyBtn.textContent = `Activate Frenzy (x${powerUps.frenzyToken.count})`;
+                }
+                prestigeDisplay.textContent = prestigeLevel > 0 ? `Prestige Lvl ${prestigeLevel} (+${prestigeLevel * 25}% Earnings)` : '';
+                if (milestones[1000]?.unlocked) {
+                    gameContainer.classList.add('theme-inferno');
+                }
+            } else {
+                fullReset();
             }
-            if (powerUps.symbolMagnet.level > 0) {
-                weightedSymbols = [...baseSymbols];
-                const diamond = baseSymbols.find(s => s.emoji === '💎');
-                for (let i = 0; i < powerUps.symbolMagnet.level * 2; i++) weightedSymbols.push(diamond);
-            }
-            if (powerUps.frenzyToken.count > 0) {
-                const frenzyBtn = document.getElementById('frenzyButton') || createActionButton('frenzyButton', 'Activate Frenzy', 'bg-red-600', startFrenzy);
-                frenzyBtn.classList.remove('hidden');
-                frenzyBtn.textContent = `Activate Frenzy (x${powerUps.frenzyToken.count})`;
-            }
-            prestigeDisplay.textContent = prestigeLevel > 0 ? `Prestige Lvl ${prestigeLevel} (+${prestigeLevel * 25}% Earnings)` : '';
-            if (milestones[1000]?.unlocked) {
-                gameContainer.classList.add('theme-inferno');
-            }
-
             updateBalanceDisplay();
             updateWinCounter();
             updateIntensity();
@@ -739,42 +729,8 @@
         }
         
         // --- Initialization ---
-        window.onload = async () => {
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-            
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-
-            onAuthStateChanged(auth, user => {
-                if (user) {
-                    userId = user.uid;
-                    userIdDisplay.textContent = `User ID: ${userId}`;
-                    docRef = doc(db, "artifacts", appId, "users", userId);
-                    
-                    onSnapshot(docRef, (docSnap) => {
-                        if (docSnap.exists()) {
-                            loadGameState(docSnap.data());
-                        } else {
-                            fullReset();
-                            saveGameState(); // Save initial state for new user
-                        }
-                    });
-                }
-            });
-
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Authentication failed:", error);
-                userIdDisplay.textContent = "Connection failed. Progress will not be saved.";
-            }
-
+        window.onload = () => {
+            loadGameState();
             spinButton.addEventListener('click', () => spin());
             startIdleIncome();
             resizeCanvas(); 
