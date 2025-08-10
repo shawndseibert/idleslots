@@ -124,6 +124,7 @@
 
     <div id="game-container" class="bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 border-2 transition-all duration-500 relative" style="z-index: 100;">
         
+        <div id="user-id-display" class="text-center text-xs text-gray-500 mb-2 truncate">Connecting...</div>
         <h1 class="text-4xl font-bold text-center mb-2">Idle Slots</h1>
         <p id="prestige-display" class="text-center text-cyan-400 mb-4 h-5"></p>
 
@@ -194,12 +195,19 @@
         <button id="gamble-collect" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Collect</button>
     </div>
 
-    <script>
+    <script type="module">
+        // --- Firebase Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Game State Variables ---
         let balance = 100;
         let spinCost = 5;
         let idleIncome = 1;
         const idleInterval = 1000;
         let prestigeLevel = 0;
+        let wins = 0;
 
         let baseSymbols = [
             { emoji: '💎', payout3: 500, payout2: 50 }, { emoji: '🍀', payout3: 200, payout2: 30 },
@@ -211,11 +219,13 @@
         const anyTwoCherriesPayout = 10;
         const anyOneCherryPayout = 4;
 
+        // --- DOM Elements ---
         const gameContainer = document.getElementById('game-container');
         const statsPanel = document.getElementById('stats-panel');
         const balanceDisplay = document.getElementById('balance');
         const winCounter = document.getElementById('win-counter');
         const prestigeDisplay = document.getElementById('prestige-display');
+        const userIdDisplay = document.getElementById('user-id-display');
         const slotElementsWithParents = Array.from(document.querySelectorAll('.slot'));
         const slotElements = slotElementsWithParents.map(el => el.querySelector('.slot-inner'));
         const spinButton = document.getElementById('spinButton');
@@ -232,6 +242,7 @@
         const powerUpsContainer = document.getElementById('power-ups-container');
         const coinContainer = document.getElementById('coin-container');
 
+        // --- Audio Synths ---
         const membraneSynth = new Tone.MembraneSynth().toDestination();
         const errorSynth = new Tone.FMSynth({ harmonicity: 8, modulationIndex: 2, envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.1 } }).toDestination();
         const winSynth = new Tone.MetalSynth({ frequency: 250, envelope: { attack: 0.001, decay: 0.2, release: 0.1 }, harmonicity: 5.1, modulationIndex: 32, resonance: 3000, octaves: 1.5 }).toDestination();
@@ -242,7 +253,7 @@
         const frenzySynth = new Tone.AMSynth().toDestination();
         let frenzyPattern;
 
-        let wins = 0;
+        // --- Game Logic Variables ---
         let isSpinning = false;
         let audioInitialized = false;
         let coinInterval;
@@ -250,8 +261,11 @@
         let isFrenzyActive = false;
         let gambleAmount = 0;
         let milestones = {};
-
         const intensityColors = ['#4f46e5', '#db2777', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
+
+        // --- Firebase State ---
+        let db, auth, userId, docRef;
+        let saveTimeout;
 
         // --- Power-Ups & Milestones ---
         let powerUps = {};
@@ -271,7 +285,59 @@
                 1000: { unlocked: false, description: 'Unlock the Inferno theme!' }
             };
         }
+        
+        // --- Firebase Functions ---
+        async function saveGameState() {
+            if (!userId) return;
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                const gameState = {
+                    balance, wins, idleIncome, prestigeLevel, powerUps, milestones, baseSymbols
+                };
+                try {
+                    await setDoc(docRef, gameState, { merge: true });
+                } catch (error) {
+                    console.error("Error saving game state: ", error);
+                }
+            }, 1000); // Debounce saving to prevent too many writes
+        }
 
+        function loadGameState(data) {
+            balance = data.balance ?? 100;
+            wins = data.wins ?? 0;
+            idleIncome = data.idleIncome ?? 1;
+            prestigeLevel = data.prestigeLevel ?? 0;
+            powerUps = data.powerUps ?? powerUps;
+            milestones = data.milestones ?? milestones;
+            baseSymbols = data.baseSymbols ?? baseSymbols;
+            
+            // Re-apply loaded state
+            if (powerUps.autoSpinner.level > 0) {
+                const autoSpinSpeed = Math.max(400, 3000 - (powerUps.autoSpinner.level - 1) * 400);
+                autoSpinnerInterval = setInterval(spin, autoSpinSpeed);
+                spinButton.textContent = 'Auto';
+            }
+            if (powerUps.symbolMagnet.level > 0) {
+                weightedSymbols = [...baseSymbols];
+                const diamond = baseSymbols.find(s => s.emoji === '💎');
+                for (let i = 0; i < powerUps.symbolMagnet.level * 2; i++) weightedSymbols.push(diamond);
+            }
+            if (powerUps.frenzyToken.count > 0) {
+                const frenzyBtn = document.getElementById('frenzyButton') || createActionButton('frenzyButton', 'Activate Frenzy', 'bg-red-600', startFrenzy);
+                frenzyBtn.classList.remove('hidden');
+                frenzyBtn.textContent = `Activate Frenzy (x${powerUps.frenzyToken.count})`;
+            }
+            prestigeDisplay.textContent = prestigeLevel > 0 ? `Prestige Lvl ${prestigeLevel} (+${prestigeLevel * 25}% Earnings)` : '';
+            if (milestones[1000]?.unlocked) {
+                gameContainer.classList.add('theme-inferno');
+            }
+
+            updateBalanceDisplay();
+            updateWinCounter();
+            updateIntensity();
+        }
+
+        // --- Core Game Logic ---
         async function initializeAudio() { if (!audioInitialized) { await Tone.start(); audioInitialized = true; } }
         function updateBalanceDisplay() {
             balanceDisplay.textContent = `$${Math.floor(balance)}`;
@@ -422,6 +488,7 @@
                     winSynth.harmonicity = 5.1 + newIntensity * 1.5; winSynth.frequency.value = 250 + newIntensity * 25;
                     winSynth.triggerAttackRelease("C5", "8n", Tone.now());
                 }
+                saveGameState();
             }
         }
         
@@ -473,12 +540,13 @@
                     }
                 } else {
                     pu.count++;
-                    const frenzyButton = document.getElementById('frenzyButton') || createActionButton('frenzyButton', 'Activate Frenzy', 'bg-red-600', startFrenzy);
-                    frenzyButton.classList.remove('hidden');
-                    frenzyButton.textContent = `Activate Frenzy (x${pu.count})`;
+                    const frenzyBtn = document.getElementById('frenzyButton') || createActionButton('frenzyButton', 'Activate Frenzy', 'bg-red-600', startFrenzy);
+                    frenzyBtn.classList.remove('hidden');
+                    frenzyBtn.textContent = `Activate Frenzy (x${pu.count})`;
                 }
                 updateBalanceDisplay();
                 renderStore();
+                saveGameState();
             }
         }
 
@@ -494,9 +562,9 @@
             const frenzyIntensity = originalIntensity + 5;
             particleGlow.level = frenzyIntensity;
             createParticles(frenzyIntensity);
-            const frenzyButton = document.getElementById('frenzyButton');
-            frenzyButton.disabled = true;
-            frenzyButton.textContent = 'FRENZY ACTIVE!';
+            const frenzyBtn = document.getElementById('frenzyButton');
+            frenzyBtn.disabled = true;
+            frenzyBtn.textContent = 'FRENZY ACTIVE!';
             setTimeout(() => {
                 isFrenzyActive = false;
                 clearInterval(frenzySpinInterval);
@@ -504,9 +572,9 @@
                 Tone.Transport.stop();
                 particleGlow.level = originalIntensity;
                 createParticles(originalIntensity);
-                frenzyButton.disabled = false;
-                frenzyButton.textContent = powerUps.frenzyToken.count > 0 ? `Activate Frenzy (x${powerUps.frenzyToken.count})` : 'Frenzy';
-                if (powerUps.frenzyToken.count === 0) frenzyButton.remove();
+                frenzyBtn.disabled = false;
+                frenzyBtn.textContent = powerUps.frenzyToken.count > 0 ? `Activate Frenzy (x${powerUps.frenzyToken.count})` : 'Frenzy';
+                if (powerUps.frenzyToken.count === 0) frenzyBtn.remove();
             }, 15000);
         }
         
@@ -524,12 +592,13 @@
             resetProgress();
             clearInterval(autoSpinnerInterval);
             spinButton.textContent = 'Spin ($5)';
-            actionButtonsContainer.innerHTML = ''; // Clear frenzy/gamble buttons
+            actionButtonsContainer.innerHTML = '';
             weightedSymbols = [...baseSymbols];
             if (!isPrestige) prestigeLevel = 0;
             prestigeDisplay.textContent = prestigeLevel > 0 ? `Prestige Lvl ${prestigeLevel} (+${prestigeLevel * 25}% Earnings)` : '';
             gameContainer.classList.remove('theme-inferno');
             updateBalanceDisplay(); updateWinCounter(); updateIntensity();
+            saveGameState();
         }
 
         function checkMilestones() {
@@ -537,12 +606,13 @@
                 if (!milestones[winCount].unlocked && wins >= winCount) {
                     milestones[winCount].unlocked = true;
                     showMessage(`Milestone! ${milestones[winCount].description}`, 'text-yellow-300', 4000);
-                    if (winCount == 250) { // Unlock Crown
+                    if (winCount == 250) {
                         baseSymbols.unshift({ emoji: '👑', payout3: 1000, payout2: 100 });
                         weightedSymbols = [...baseSymbols];
-                    } else if (winCount == 1000) { // Unlock Theme
+                    } else if (winCount == 1000) {
                         gameContainer.classList.add('theme-inferno');
                     }
+                    saveGameState();
                 }
             }
         }
@@ -560,16 +630,16 @@
 
         function showGambleButton(amount) {
             if (isFrenzyActive) return;
-            hideGambleButton(); // Clear previous
+            hideGambleButton();
             gambleAmount = amount;
-            balance -= amount; // Temporarily remove winnings
+            balance -= amount;
             const gambleButton = createActionButton('gamble-button', `Gamble $${Math.floor(gambleAmount)}`, 'bg-yellow-600 hover:bg-yellow-700', startGamble);
-            setTimeout(hideGambleButton, 4000); // Button disappears after 4s
+            setTimeout(hideGambleButton, 4000);
         }
         function hideGambleButton() {
             const gambleButton = document.getElementById('gamble-button');
             if (gambleButton) {
-                if (gambleAmount > 0) { // Player didn't gamble, return money
+                if (gambleAmount > 0) {
                     balance += gambleAmount;
                     updateBalanceDisplay();
                 }
@@ -602,7 +672,6 @@
             toggleMenu(gambleMenu, gambleMenuOverlay);
         });
 
-
         // --- Menu Toggles ---
         function toggleMenu(menu, overlay) {
             menu.classList.toggle('hidden');
@@ -628,7 +697,6 @@
         document.getElementById('dev-reset').addEventListener('click', () => fullReset(false));
         document.getElementById('dev-close').addEventListener('click', () => toggleMenu(devMenu, devMenuOverlay));
         devMenuOverlay.addEventListener('click', () => toggleMenu(devMenu, devMenuOverlay));
-
 
         // --- Background Canvas Animation ---
         const canvas = document.getElementById('background-canvas');
@@ -671,11 +739,47 @@
         }
         
         // --- Initialization ---
-        spinButton.addEventListener('click', () => spin());
-        window.onload = () => {
-            fullReset();
-            updateBalanceDisplay(); updateWinCounter(); startIdleIncome();
-            resizeCanvas(); animateParticles(); updateIntensity();
+        window.onload = async () => {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+            
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    userId = user.uid;
+                    userIdDisplay.textContent = `User ID: ${userId}`;
+                    docRef = doc(db, "artifacts", appId, "users", userId);
+                    
+                    onSnapshot(docRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            loadGameState(docSnap.data());
+                        } else {
+                            fullReset();
+                            saveGameState(); // Save initial state for new user
+                        }
+                    });
+                }
+            });
+
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Authentication failed:", error);
+                userIdDisplay.textContent = "Connection failed. Progress will not be saved.";
+            }
+
+            spinButton.addEventListener('click', () => spin());
+            startIdleIncome();
+            resizeCanvas(); 
+            animateParticles(); 
+            updateIntensity();
             showMessage("Click Spin to Start!", "text-yellow-300", 3000);
         };
         window.onresize = resizeCanvas;
