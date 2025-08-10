@@ -104,6 +104,10 @@
         .power-up-item {
             background-color: #374151; border-radius: 8px; padding: 12px;
         }
+        #power-ups-container {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
         
         /* --- Themes --- */
         .theme-inferno {
@@ -152,15 +156,15 @@
                 Spin ($5)
             </button>
             <div class="flex w-1/2 space-x-4">
-                <button id="storeButton" class="store-button w-1/2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-4 rounded-lg text-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-purple-400">
+                <button id="storeButton" class="store-button w-1/2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-4 rounded-lg text-lg shadow-lg focus:outline-none focus:ring-4 focus:ring-purple-400">
                     Store
                 </button>
-                <button id="settingsButton" class="settings-button w-1/2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-4 rounded-lg text-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-gray-400">
+                <button id="settingsButton" class="settings-button w-1/2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-4 rounded-lg text-lg shadow-lg focus:outline-none focus:ring-4 focus:ring-gray-400">
                     Settings
                 </button>
             </div>
         </div>
-        <div id="action-buttons" class="flex space-x-4 mt-4">
+        <div id="action-buttons" class="flex space-x-4 mt-4 h-14">
             <!-- Gamble and Frenzy buttons will appear here -->
         </div>
         <button id="prestigeButton" class="prestige-button w-full mt-4 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg text-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-cyan-400 hidden">
@@ -475,7 +479,7 @@
             else if (s1.emoji === s2.emoji) { winnings = s1.payout2; winType = 'regular'; winningReels = [slotElements[0], slotElements[1]]; }
             else if (s2.emoji === s3.emoji) { winnings = s2.payout2; winType = 'regular'; winningReels = [slotElements[1], slotElements[2]]; }
             else {
-                const cherryCount = resultSymbols.reduce((count, s, i) => { if (s.emoji === '🍒') count.indices.push(i); return count; }, { indices: [] });
+                const cherryCount = resultSymbols.reduce((count, s, i) => { if (s.emoji === '�') count.indices.push(i); return count; }, { indices: [] });
                 if (cherryCount.indices.length === 2) { winnings = anyTwoCherriesPayout; winType = 'small'; winningReels = cherryCount.indices.map(i => slotElements[i]); }
                 else if (cherryCount.indices.length === 1) { winnings = anyOneCherryPayout; winType = 'small'; winningReels = cherryCount.indices.map(i => slotElements[i]); }
             }
@@ -787,10 +791,10 @@
         
         // --- Initialization ---
         window.onload = () => {
-            resizeCanvas(); 
             loadGameState();
             spinButton.addEventListener('click', () => spin());
             startIdleIncome();
+            resizeCanvas(); 
             animateParticles(); 
             showMessage("Click Spin to Start!", "text-yellow-300", 3000);
         };
@@ -805,3 +809,4 @@
     </script>
 </body>
 </html>
+�
