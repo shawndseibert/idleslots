@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Idle Slot Machine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            touch-action: manipulation;
+            overflow: hidden; /* Prevent scrollbars from animated elements */
+        }
+        #background-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* Behind everything but body */
+        }
+        .slot {
+            width: 100px;
+            height: 100px;
+            border: 4px solid #4B5563;
+            background-color: #F9FAFB;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 6px 10px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .slot-inner {
+            position: absolute;
+            top: 0;
+            transition: top 0.1s ease-in-out;
+        }
+        .spin-button, .stats-panel, .slot, .store-button, .frenzy-button, .prestige-button {
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 10;
+        }
+        .spin-button:active, .store-button:active, .frenzy-button:active, .prestige-button:active {
+            transform: translateY(2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        .message-box {
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+        }
+        
+        /* --- Visual Flair Animations --- */
+        @keyframes win-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .win-pulse { animation: win-pulse 0.5s ease-in-out; }
+
+        @keyframes jackpot-glow {
+            0% { transform: scale(1) rotate(0); } 50% { transform: scale(1.15) rotate(-3deg); } 100% { transform: scale(1) rotate(0); }
+        }
+        .jackpot-glow { animation: jackpot-glow 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        
+        .jackpot-border-glow { animation: jackpot-glow 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+
+        @keyframes screen-shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(0, 0) rotate(0deg); }
+        }
+        .screen-shake { animation: screen-shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+
+        @keyframes nudge-glow {
+            0%, 100% { box-shadow: inset 0 0 15px 5px #10b981; }
+            50% { box-shadow: inset 0 0 25px 10px #34d399; }
+        }
+        .nudge-animation { animation: nudge-glow 0.8s ease-in-out; }
+
+        @keyframes sparkle {
+            0%, 100% { text-shadow: 0 0 10px #fff, 0 0 20px #ffc, 0 0 30px #ffc; }
+            50% { text-shadow: 0 0 20px #fff, 0 0 30px #ffc, 0 0 40px #ffc; }
+        }
+        .super-symbol { animation: sparkle 1.5s infinite; }
+
+        /* --- Falling Coins --- */
+        .coin-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 2;
+        }
+        @keyframes fall { 0% { top: -10%; opacity: 1; } 100% { top: 110%; opacity: 0.5; } }
+        .coin {
+            position: absolute; top: -10%; font-size: 2rem; animation: fall 3s linear; text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+
+        /* --- Menus & Modals --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 998; backdrop-filter: blur(5px);
+        }
+        .menu {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background-color: rgba(17, 24, 39, 0.95); border: 2px solid #FBBF24; border-radius: 12px;
+            padding: 24px; z-index: 1000; width: 90%; max-width: 400px;
+        }
+        .power-up-item {
+            background-color: #374151; border-radius: 8px; padding: 12px;
+        }
+        
+        /* --- Themes --- */
+        .theme-inferno {
+            --main-border: #ef4444; /* red-500 */
+            --title-color: #f87171; /* red-400 */
+        }
+        #game-container {
+            border-color: var(--main-border, #FBBF24);
+        }
+        #game-container h1 {
+            color: var(--title-color, #FBBF24);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
+    <canvas id="background-canvas"></canvas>
+    <div class="coin-container" id="coin-container"></div>
+
+    <div id="game-container" class="bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 border-2 transition-all duration-500 relative" style="z-index: 100;">
+        
+        <h1 class="text-4xl font-bold text-center mb-2">Idle Slots</h1>
+        <p id="prestige-display" class="text-center text-cyan-400 mb-4 h-5"></p>
+
+        <div id="stats-panel" class="stats-panel bg-gray-900 p-4 rounded-lg text-center mb-6 flex justify-around">
+            <div class="w-1/2">
+                <p class="text-lg text-gray-400">Your Balance</p>
+                <p id="balance" class="text-4xl font-bold text-green-400">$100</p>
+            </div>
+            <div class="border-l border-gray-700"></div>
+            <div class="w-1/2">
+                <p class="text-lg text-gray-400">Total Wins</p>
+                <p id="win-counter" class="text-4xl font-bold text-yellow-400">0</p>
+            </div>
+        </div>
+
+        <div class="flex justify-center space-x-4 mb-6">
+            <div class="slot"><div id="slot1" class="slot-inner"><span>🍒</span></div></div>
+            <div class="slot"><div id="slot2" class="slot-inner"><span>🍋</span></div></div>
+            <div class="slot"><div id="slot3" class="slot-inner"><span>🍊</span></div></div>
+        </div>
+
+        <div id="message" class="message-box text-center text-xl font-semibold h-8 mb-4"></div>
+
+        <div class="flex space-x-4">
+            <button id="spinButton" class="spin-button w-2/3 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-4 px-4 rounded-lg text-2xl shadow-lg focus:outline-none focus:ring-4 focus:ring-yellow-300 disabled:bg-gray-600 disabled:cursor-not-allowed">
+                Spin ($5)
+            </button>
+            <button id="storeButton" class="store-button w-1/3 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-4 rounded-lg text-2xl shadow-lg focus:outline-none focus:ring-4 focus:ring-purple-400">
+                Store
+            </button>
+        </div>
+        <div id="action-buttons" class="flex space-x-4 mt-4">
+            <!-- Gamble and Frenzy buttons will appear here -->
+        </div>
+        <button id="prestigeButton" class="prestige-button w-full mt-4 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg text-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-cyan-400 hidden">
+            Prestige (100 Wins)
+        </button>
+        
+    </div>
+
+    <!-- Menus & Modals -->
+    <div id="dev-menu-overlay" class="modal-overlay hidden"></div>
+    <div id="dev-menu" class="menu hidden">
+        <h3 class="text-lg font-bold text-yellow-300 mb-4 text-center">Dev Menu</h3>
+        <div class="space-y-2">
+            <button id="dev-add-money" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">Add $1000</button>
+            <button id="dev-add-wins" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Add 10 Wins</button>
+            <button id="dev-reset" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">Reset Game</button>
+        </div>
+        <button id="dev-close" class="mt-4 w-full text-gray-400 hover:text-white">Close</button>
+    </div>
+
+    <div id="store-menu-overlay" class="modal-overlay hidden"></div>
+    <div id="store-menu" class="menu hidden">
+        <h3 class="text-2xl font-bold text-purple-400 mb-4 text-center">Power-Up Store</h3>
+        <div id="power-ups-container" class="space-y-4"></div>
+        <button id="store-close" class="mt-6 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Close</button>
+    </div>
+
+    <div id="gamble-menu-overlay" class="modal-overlay hidden"></div>
+    <div id="gamble-menu" class="menu hidden">
+        <h3 class="text-2xl font-bold text-yellow-400 mb-2 text-center">Double or Nothing!</h3>
+        <p class="text-center text-lg mb-4">Current Winnings: $<span id="gamble-amount">0</span></p>
+        <div class="flex space-x-4">
+            <button id="gamble-red" class="w-1/2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg text-xl">Red</button>
+            <button id="gamble-black" class="w-1/2 bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 px-4 rounded-lg text-xl border-2 border-white">Black</button>
+        </div>
+        <button id="gamble-collect" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Collect</button>
+    </div>
+
+    <script>
+        let balance = 100;
+        let spinCost = 5;
+        let idleIncome = 1;
+        const idleInterval = 1000;
+        let prestigeLevel = 0;
+
+        let baseSymbols = [
+            { emoji: '💎', payout3: 500, payout2: 50 }, { emoji: '🍀', payout3: 200, payout2: 30 },
+            { emoji: '🔔', payout3: 100,  payout2: 20 }, { emoji: '🍇', payout3: 40,  payout2: 10 },
+            { emoji: '🍊', payout3: 30,  payout2: 6 }, { emoji: '🍋', payout3: 20,  payout2: 4 },
+            { emoji: '🍒', payout3: 15,   payout2: 2 }
+        ];
+        let weightedSymbols = [...baseSymbols];
+        const anyTwoCherriesPayout = 10;
+        const anyOneCherryPayout = 4;
+
+        const gameContainer = document.getElementById('game-container');
+        const statsPanel = document.getElementById('stats-panel');
+        const balanceDisplay = document.getElementById('balance');
+        const winCounter = document.getElementById('win-counter');
+        const prestigeDisplay = document.getElementById('prestige-display');
+        const slotElementsWithParents = Array.from(document.querySelectorAll('.slot'));
+        const slotElements = slotElementsWithParents.map(el => el.querySelector('.slot-inner'));
+        const spinButton = document.getElementById('spinButton');
+        const storeButton = document.getElementById('storeButton');
+        const actionButtonsContainer = document.getElementById('action-buttons');
+        const prestigeButton = document.getElementById('prestigeButton');
+        const messageBox = document.getElementById('message');
+        const devMenu = document.getElementById('dev-menu');
+        const devMenuOverlay = document.getElementById('dev-menu-overlay');
+        const storeMenu = document.getElementById('store-menu');
+        const storeMenuOverlay = document.getElementById('store-menu-overlay');
+        const gambleMenu = document.getElementById('gamble-menu');
+        const gambleMenuOverlay = document.getElementById('gamble-menu-overlay');
+        const powerUpsContainer = document.getElementById('power-ups-container');
+        const coinContainer = document.getElementById('coin-container');
+
+        const membraneSynth = new Tone.MembraneSynth().toDestination();
+        const errorSynth = new Tone.FMSynth({ harmonicity: 8, modulationIndex: 2, envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.1 } }).toDestination();
+        const winSynth = new Tone.MetalSynth({ frequency: 250, envelope: { attack: 0.001, decay: 0.2, release: 0.1 }, harmonicity: 5.1, modulationIndex: 32, resonance: 3000, octaves: 1.5 }).toDestination();
+        const jackpotSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+        const levelUpSynth = new Tone.FMSynth().toDestination();
+        const purchaseSynth = new Tone.Synth({ oscillator: { type: 'triangle' } }).toDestination();
+        const prestigeSynth = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.1, decay: 0.5, sustain: 0.1, release: 1 } }).toDestination();
+        const frenzySynth = new Tone.AMSynth().toDestination();
+        let frenzyPattern;
+
+        let wins = 0;
+        let isSpinning = false;
+        let audioInitialized = false;
+        let coinInterval;
+        let autoSpinnerInterval;
+        let isFrenzyActive = false;
+        let gambleAmount = 0;
+        let milestones = {};
+
+        const intensityColors = ['#4f46e5', '#db2777', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
+
+        // --- Power-Ups & Milestones ---
+        let powerUps = {};
+        function resetProgress() {
+            powerUps = {
+                autoSpinner: { name: 'Auto Spinner', description: 'Spins faster with each level.', cost: 200, level: 0 },
+                incomeBoost: { name: 'Income Boost', description: 'Increases idle income by $1/s.', cost: 250, level: 0 },
+                winMultiplier: { name: 'Win Multiplier', description: 'Increases all wins by 10%.', cost: 1000, level: 0 },
+                nudge: { name: 'Lucky Nudge', description: 'Chance to turn a near-miss into a jackpot.', cost: 750, level: 0 },
+                symbolMagnet: { name: 'Diamond Magnet', description: 'Increases chance of landing 💎.', cost: 1500, level: 0 },
+                jackpotChain: { name: 'Jackpot Chain', description: 'Jackpots can re-spin with a 2x multiplier.', cost: 5000, level: 0 },
+                frenzyToken: { name: 'Frenzy Token', description: '15s of free, fast, 2x-payout spins.', cost: 2000, count: 0 }
+            };
+            milestones = {
+                250: { unlocked: false, description: 'Unlock the 👑 symbol!' },
+                500: { unlocked: false, description: 'Win Multiplier is now 5% more effective!' },
+                1000: { unlocked: false, description: 'Unlock the Inferno theme!' }
+            };
+        }
+
+        async function initializeAudio() { if (!audioInitialized) { await Tone.start(); audioInitialized = true; } }
+        function updateBalanceDisplay() {
+            balanceDisplay.textContent = `$${Math.floor(balance)}`;
+            if (!isSpinning) { spinButton.disabled = balance < spinCost; }
+        }
+        function updateWinCounter() { 
+            winCounter.textContent = wins;
+            prestigeButton.classList.toggle('hidden', wins < 100);
+            checkMilestones();
+        }
+        
+        function showMessage(text, colorClass = 'text-yellow-300', duration = 2000) {
+            const intensityLevel = Math.floor(wins / 10);
+            const effectiveDuration = Math.max(800, duration - intensityLevel * 150);
+            messageBox.textContent = text;
+            messageBox.className = `message-box text-center text-xl font-semibold h-8 mb-4 opacity-100 transform translate-y-0 ${colorClass}`;
+            setTimeout(() => { messageBox.style.opacity = '0'; messageBox.style.transform = 'translateY(-10px)'; }, effectiveDuration);
+        }
+
+        function spin(options = {}) {
+            const { isFree = false, isChain = false, chainMultiplier = 1 } = options;
+            if (isSpinning || (balance < spinCost && !isFree)) {
+                if(balance < spinCost && !isSpinning && !isFree) { errorSynth.triggerAttackRelease("C2", "8n"); showMessage("Not enough money!", 'text-red-400'); }
+                return;
+            }
+            hideGambleButton();
+            membraneSynth.triggerAttackRelease("C4", "8n", Tone.now());
+            isSpinning = true; 
+            if (!isFree) { balance -= spinCost; }
+            spinButton.disabled = true; updateBalanceDisplay();
+            const intensityLevel = Math.floor(wins / 10);
+            let spinDuration = Math.max(400, 2000 - intensityLevel * 200);
+            if (isFrenzyActive) spinDuration = 250;
+            
+            let spinIntervals = [];
+            slotElements.forEach((reel, index) => { spinIntervals[index] = setInterval(() => { 
+                const symbol = getRandomSymbol();
+                reel.innerHTML = `<span class="${symbol.isSuper ? 'super-symbol' : ''}">${symbol.emoji}</span>`;
+            }, 50); });
+            const finalSymbols = [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()];
+            setTimeout(() => stopReel(0, finalSymbols[0], spinIntervals[0]), spinDuration * 0.5);
+            setTimeout(() => stopReel(1, finalSymbols[1], spinIntervals[1]), spinDuration * 0.75);
+            setTimeout(() => stopReel(2, finalSymbols[2], spinIntervals[2], () => { isSpinning = false; checkWin(finalSymbols, {isChain, chainMultiplier}); updateBalanceDisplay(); }), spinDuration);
+        }
+
+        function stopReel(reelIndex, finalSymbol, intervalId, callback) {
+            clearInterval(intervalId);
+            membraneSynth.triggerAttackRelease("C3", "8n", Tone.now());
+            slotElements[reelIndex].innerHTML = `<span class="${finalSymbol.isSuper ? 'super-symbol' : ''}">${finalSymbol.emoji}</span>`;
+            if (callback) callback();
+        }
+
+        function getRandomSymbol() { 
+            const symbol = { ...weightedSymbols[Math.floor(Math.random() * weightedSymbols.length)] };
+            if (prestigeLevel > 0 && Math.random() < 0.02) { // 2% chance for a super symbol
+                symbol.isSuper = true;
+            }
+            return symbol;
+        }
+
+        function updateIntensity() {
+            const intensityLevel = Math.floor(wins / 10);
+            if (intensityLevel > 0) {
+                const colorIndex = (intensityLevel - 1) % intensityColors.length;
+                const color = intensityColors[colorIndex];
+                const glowSize = 15 + intensityLevel * 2;
+                const glowSpread = 5 + intensityLevel * 1;
+                const glowStyle = `0 0 ${glowSize}px ${glowSpread}px ${color}`;
+                gameContainer.style.boxShadow = glowStyle;
+                statsPanel.style.boxShadow = glowStyle;
+                spinButton.style.boxShadow = glowStyle;
+                slotElementsWithParents.forEach(slot => { slot.style.boxShadow = `inset 0 6px 10px rgba(0,0,0,0.2), ${glowStyle}`; });
+            } else {
+                [gameContainer, statsPanel, spinButton, ...slotElementsWithParents].forEach(el => el.style.boxShadow = '');
+            }
+            particleGlow.level = intensityLevel;
+            clearInterval(coinInterval);
+            if (intensityLevel > 0) {
+                const intervalTime = Math.max(20, 500 - intensityLevel * 40);
+                coinInterval = setInterval(createFallingCoin, intervalTime);
+            }
+        }
+
+        function createFallingCoin() {
+            const coin = document.createElement('div');
+            coin.classList.add('coin'); coin.textContent = '💰'; coin.style.left = `${Math.random() * 100}vw`;
+            coin.style.animationDuration = `${2 + Math.random() * 2}s`; coin.style.fontSize = `${1.5 + Math.random()}rem`;
+            coinContainer.appendChild(coin);
+            setTimeout(() => { coin.remove(); }, 4000);
+        }
+
+        function checkWin(resultSymbols, spinOptions = {}) {
+            let { isChain = false, chainMultiplier = 1 } = spinOptions;
+            let winnings = 0, winType = 'none', message = '', winningReels = [];
+            
+            if (powerUps.nudge.level > 0 && !isFrenzyActive) {
+                const [s1, s2, s3] = resultSymbols;
+                const nudgeChance = powerUps.nudge.level * 0.05;
+                if (s1.emoji === s2.emoji && s1.emoji !== s3.emoji && Math.random() < nudgeChance) {
+                    resultSymbols[2] = s1;
+                    slotElements[2].innerHTML = `<span class="${s1.isSuper ? 'super-symbol' : ''}">${s1.emoji}</span>`;
+                    slotElementsWithParents[2].classList.add('nudge-animation');
+                    setTimeout(() => slotElementsWithParents[2].classList.remove('nudge-animation'), 800);
+                    showMessage('Nudge!', 'text-emerald-400');
+                } else if (s2.emoji === s3.emoji && s2.emoji !== s1.emoji && Math.random() < nudgeChance) {
+                    resultSymbols[0] = s2;
+                    slotElements[0].innerHTML = `<span class="${s2.isSuper ? 'super-symbol' : ''}">${s2.emoji}</span>`;
+                    slotElementsWithParents[0].classList.add('nudge-animation');
+                    setTimeout(() => slotElementsWithParents[0].classList.remove('nudge-animation'), 800);
+                    showMessage('Nudge!', 'text-emerald-400');
+                }
+            }
+            
+            const [s1, s2, s3] = resultSymbols;
+            if (s1.emoji === s2.emoji && s2.emoji === s3.emoji) { winnings = s1.payout3; winType = 'jackpot'; winningReels = slotElements; }
+            else if (s1.emoji === s2.emoji) { winnings = s1.payout2; winType = 'regular'; winningReels = [slotElements[0], slotElements[1]]; }
+            else if (s2.emoji === s3.emoji) { winnings = s2.payout2; winType = 'regular'; winningReels = [slotElements[1], slotElements[2]]; }
+            else {
+                const cherryCount = resultSymbols.reduce((count, s, i) => { if (s.emoji === '🍒') count.indices.push(i); return count; }, { indices: [] });
+                if (cherryCount.indices.length === 2) { winnings = anyTwoCherriesPayout; winType = 'small'; winningReels = cherryCount.indices.map(i => slotElements[i]); }
+                else if (cherryCount.indices.length === 1) { winnings = anyOneCherryPayout; winType = 'small'; winningReels = cherryCount.indices.map(i => slotElements[i]); }
+            }
+
+            if (winnings > 0) {
+                const milestoneBonus = milestones[500]?.unlocked ? 0.05 : 0;
+                let finalMultiplier = (1 + (powerUps.winMultiplier.level * (0.1 + milestoneBonus))) * (1 + (prestigeLevel * 0.25));
+                if (isFrenzyActive) finalMultiplier *= 2;
+                if (isChain) finalMultiplier *= chainMultiplier;
+                if (resultSymbols.some(s => s.isSuper)) finalMultiplier *= 10;
+                winnings *= finalMultiplier;
+
+                const oldIntensity = Math.floor(wins / 10);
+                balance += winnings; wins++; updateWinCounter();
+                const newIntensity = Math.floor(wins / 10);
+                if (newIntensity > oldIntensity) { levelUpSynth.triggerAttackRelease("C5", "4n"); showMessage(`Intensity Up!`, 'text-pink-400', 2500); }
+                updateIntensity();
+                showGambleButton(winnings);
+
+                if (winType === 'jackpot') {
+                    let jackpotMessage = isChain ? `Chain x${chainMultiplier}! +$${Math.floor(winnings)}` : `Jackpot! +$${Math.floor(winnings)}`;
+                    showMessage(jackpotMessage, 'text-green-400', 3000); triggerWinAnimation(winningReels, 'jackpot-glow');
+                    const now = Tone.now(); jackpotSynth.triggerAttackRelease(["C4", "E4", "G4"], "8n", now);
+                    if (powerUps.jackpotChain.level > 0 && Math.random() < powerUps.jackpotChain.level * 0.05) {
+                        setTimeout(() => spin({ isFree: true, isChain: true, chainMultiplier: chainMultiplier * 2 }), 1500);
+                    }
+                } else {
+                    showMessage(`+ $${Math.floor(winnings)}`, 'text-blue-400'); triggerWinAnimation(winningReels, 'win-pulse');
+                    winSynth.harmonicity = 5.1 + newIntensity * 1.5; winSynth.frequency.value = 250 + newIntensity * 25;
+                    winSynth.triggerAttackRelease("C5", "8n", Tone.now());
+                }
+            }
+        }
+        
+        function startIdleIncome() { setInterval(() => { if (!isSpinning) { balance += (idleIncome * (1 + prestigeLevel * 0.25)); updateBalanceDisplay(); } }, idleInterval); }
+
+        // --- Store Logic ---
+        function renderStore() {
+            powerUpsContainer.innerHTML = '';
+            for (const key in powerUps) {
+                const pu = powerUps[key];
+                const item = document.createElement('div');
+                item.className = 'power-up-item flex justify-between items-center';
+                let levelText = pu.level > 0 ? ` (Lvl ${pu.level})` : (pu.count > 0 ? ` (x${pu.count})` : '');
+                let costText = `$${Math.floor(pu.cost)}`;
+                item.innerHTML = `
+                    <div>
+                        <h4 class="text-lg font-bold text-purple-300">${pu.name}${levelText}</h4>
+                        <p class="text-sm text-gray-400">${pu.description}</p>
+                    </div>
+                    <button data-key="${key}" class="buy-button bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:bg-gray-500 disabled:cursor-not-allowed">${costText}</button>
+                `;
+                powerUpsContainer.appendChild(item);
+            }
+            document.querySelectorAll('.buy-button').forEach(button => {
+                const key = button.dataset.key;
+                if (balance < powerUps[key].cost) button.disabled = true;
+                button.addEventListener('click', () => buyPowerUp(key));
+            });
+        }
+
+        function buyPowerUp(key) {
+            const pu = powerUps[key];
+            if (balance >= pu.cost) {
+                balance -= pu.cost;
+                purchaseSynth.triggerAttackRelease("C5", "8n");
+                if (pu.hasOwnProperty('level')) {
+                    pu.level++;
+                    pu.cost *= 1.4;
+                    if (key === 'incomeBoost') idleIncome++;
+                    else if (key === 'autoSpinner') {
+                        clearInterval(autoSpinnerInterval);
+                        const autoSpinSpeed = Math.max(400, 3000 - (pu.level -1) * 400);
+                        autoSpinnerInterval = setInterval(spin, autoSpinSpeed);
+                        spinButton.textContent = 'Auto';
+                    } else if (key === 'symbolMagnet') {
+                        weightedSymbols = [...baseSymbols];
+                        const diamond = baseSymbols.find(s => s.emoji === '💎');
+                        for (let i = 0; i < pu.level * 2; i++) weightedSymbols.push(diamond);
+                    }
+                } else {
+                    pu.count++;
+                    const frenzyButton = document.getElementById('frenzyButton') || createActionButton('frenzyButton', 'Activate Frenzy', 'bg-red-600', startFrenzy);
+                    frenzyButton.classList.remove('hidden');
+                    frenzyButton.textContent = `Activate Frenzy (x${pu.count})`;
+                }
+                updateBalanceDisplay();
+                renderStore();
+            }
+        }
+
+        // --- Frenzy Mode ---
+        function startFrenzy() {
+            if (isFrenzyActive || powerUps.frenzyToken.count <= 0) return;
+            isFrenzyActive = true;
+            powerUps.frenzyToken.count--;
+            frenzyPattern = new Tone.Pattern((time, note) => { frenzySynth.triggerAttackRelease(note, '16n', time); }, ["C4", "E4", "G4", "C5"], "up").start(0);
+            Tone.Transport.start();
+            const frenzySpinInterval = setInterval(() => spin({isFree: true}), 300);
+            const originalIntensity = Math.floor(wins / 10);
+            const frenzyIntensity = originalIntensity + 5;
+            particleGlow.level = frenzyIntensity;
+            createParticles(frenzyIntensity);
+            const frenzyButton = document.getElementById('frenzyButton');
+            frenzyButton.disabled = true;
+            frenzyButton.textContent = 'FRENZY ACTIVE!';
+            setTimeout(() => {
+                isFrenzyActive = false;
+                clearInterval(frenzySpinInterval);
+                frenzyPattern.stop();
+                Tone.Transport.stop();
+                particleGlow.level = originalIntensity;
+                createParticles(originalIntensity);
+                frenzyButton.disabled = false;
+                frenzyButton.textContent = powerUps.frenzyToken.count > 0 ? `Activate Frenzy (x${powerUps.frenzyToken.count})` : 'Frenzy';
+                if (powerUps.frenzyToken.count === 0) frenzyButton.remove();
+            }, 15000);
+        }
+        
+        // --- Prestige & Milestones ---
+        function prestige() {
+            if (wins < 100) return;
+            prestigeLevel++;
+            prestigeSynth.triggerAttackRelease("C4", "2s");
+            showMessage(`Prestiged! All earnings now +${prestigeLevel * 25}%`, 'text-cyan-400', 5000);
+            fullReset(true);
+        }
+        
+        function fullReset(isPrestige = false) {
+            balance = 100; wins = 0; idleIncome = 1;
+            resetProgress();
+            clearInterval(autoSpinnerInterval);
+            spinButton.textContent = 'Spin ($5)';
+            actionButtonsContainer.innerHTML = ''; // Clear frenzy/gamble buttons
+            weightedSymbols = [...baseSymbols];
+            if (!isPrestige) prestigeLevel = 0;
+            prestigeDisplay.textContent = prestigeLevel > 0 ? `Prestige Lvl ${prestigeLevel} (+${prestigeLevel * 25}% Earnings)` : '';
+            gameContainer.classList.remove('theme-inferno');
+            updateBalanceDisplay(); updateWinCounter(); updateIntensity();
+        }
+
+        function checkMilestones() {
+            for (const winCount in milestones) {
+                if (!milestones[winCount].unlocked && wins >= winCount) {
+                    milestones[winCount].unlocked = true;
+                    showMessage(`Milestone! ${milestones[winCount].description}`, 'text-yellow-300', 4000);
+                    if (winCount == 250) { // Unlock Crown
+                        baseSymbols.unshift({ emoji: '👑', payout3: 1000, payout2: 100 });
+                        weightedSymbols = [...baseSymbols];
+                    } else if (winCount == 1000) { // Unlock Theme
+                        gameContainer.classList.add('theme-inferno');
+                    }
+                }
+            }
+        }
+
+        // --- Gamble Minigame ---
+        function createActionButton(id, text, color, callback) {
+            const button = document.createElement('button');
+            button.id = id;
+            button.className = `w-full ${color} text-white font-bold py-3 px-4 rounded-lg text-xl`;
+            button.textContent = text;
+            actionButtonsContainer.appendChild(button);
+            button.addEventListener('click', callback);
+            return button;
+        }
+
+        function showGambleButton(amount) {
+            if (isFrenzyActive) return;
+            hideGambleButton(); // Clear previous
+            gambleAmount = amount;
+            balance -= amount; // Temporarily remove winnings
+            const gambleButton = createActionButton('gamble-button', `Gamble $${Math.floor(gambleAmount)}`, 'bg-yellow-600 hover:bg-yellow-700', startGamble);
+            setTimeout(hideGambleButton, 4000); // Button disappears after 4s
+        }
+        function hideGambleButton() {
+            const gambleButton = document.getElementById('gamble-button');
+            if (gambleButton) {
+                if (gambleAmount > 0) { // Player didn't gamble, return money
+                    balance += gambleAmount;
+                    updateBalanceDisplay();
+                }
+                gambleAmount = 0;
+                gambleButton.remove();
+            }
+        }
+        function startGamble() {
+            document.getElementById('gamble-amount').textContent = Math.floor(gambleAmount);
+            toggleMenu(gambleMenu, gambleMenuOverlay);
+        }
+        function resolveGamble(choice) {
+            const result = Math.random() < 0.5 ? 'red' : 'black';
+            if (choice === result) {
+                gambleAmount *= 2;
+                document.getElementById('gamble-amount').textContent = Math.floor(gambleAmount);
+                showMessage('Correct!', 'text-green-400');
+            } else {
+                gambleAmount = 0;
+                showMessage('Wrong!', 'text-red-400');
+                toggleMenu(gambleMenu, gambleMenuOverlay);
+            }
+        }
+        document.getElementById('gamble-red').addEventListener('click', () => resolveGamble('red'));
+        document.getElementById('gamble-black').addEventListener('click', () => resolveGamble('black'));
+        document.getElementById('gamble-collect').addEventListener('click', () => {
+            balance += gambleAmount;
+            gambleAmount = 0;
+            updateBalanceDisplay();
+            toggleMenu(gambleMenu, gambleMenuOverlay);
+        });
+
+
+        // --- Menu Toggles ---
+        function toggleMenu(menu, overlay) {
+            menu.classList.toggle('hidden');
+            overlay.classList.toggle('hidden');
+        }
+        
+        storeButton.addEventListener('click', () => { renderStore(); toggleMenu(storeMenu, storeMenuOverlay); });
+        document.getElementById('store-close').addEventListener('click', () => toggleMenu(storeMenu, storeMenuOverlay));
+        storeMenuOverlay.addEventListener('click', () => toggleMenu(storeMenu, storeMenuOverlay));
+        prestigeButton.addEventListener('click', prestige);
+
+        // --- Dev Menu Logic ---
+        let dKeyPresses = 0; let dKeyPressTimer;
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'd') {
+                dKeyPresses++; clearTimeout(dKeyPressTimer);
+                dKeyPressTimer = setTimeout(() => { dKeyPresses = 0; }, 1000);
+                if (dKeyPresses === 3) { dKeyPresses = 0; toggleMenu(devMenu, devMenuOverlay); }
+            }
+        });
+        document.getElementById('dev-add-money').addEventListener('click', () => { balance += 1000; updateBalanceDisplay(); });
+        document.getElementById('dev-add-wins').addEventListener('click', () => { wins += 10; updateWinCounter(); updateIntensity(); });
+        document.getElementById('dev-reset').addEventListener('click', () => fullReset(false));
+        document.getElementById('dev-close').addEventListener('click', () => toggleMenu(devMenu, devMenuOverlay));
+        devMenuOverlay.addEventListener('click', () => toggleMenu(devMenu, devMenuOverlay));
+
+
+        // --- Background Canvas Animation ---
+        const canvas = document.getElementById('background-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let particleGlow = { level: 0 };
+        
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        function createParticles(intensity) {
+            const count = intensity * 25;
+            particles = [];
+            if (intensity === 0) return;
+            const colorIndex = (intensity - 1) % intensityColors.length;
+            const color = intensityColors[colorIndex];
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5,
+                    radius: Math.random() * 2 + 1, color: color
+                });
+            }
+        }
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const intensity = particleGlow.level;
+            if (intensity > 0) {
+                const colorIndex = (intensity - 1) % intensityColors.length;
+                const color = intensityColors[colorIndex];
+                const blur = 5 + intensity * 2;
+                particles.forEach(p => {
+                    p.x += p.vx; p.y += p.vy;
+                    if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color; ctx.shadowColor = color; ctx.shadowBlur = blur;
+                    ctx.fill();
+                });
+            }
+            requestAnimationFrame(animateParticles);
+        }
+        
+        // --- Initialization ---
+        spinButton.addEventListener('click', () => spin());
+        window.onload = () => {
+            fullReset();
+            updateBalanceDisplay(); updateWinCounter(); startIdleIncome();
+            resizeCanvas(); animateParticles(); updateIntensity();
+            showMessage("Click Spin to Start!", "text-yellow-300", 3000);
+        };
+        window.onresize = resizeCanvas;
+        const originalUpdateIntensity = updateIntensity;
+        updateIntensity = () => {
+            originalUpdateIntensity();
+            const intensityLevel = Math.floor(wins / 10);
+            createParticles(intensityLevel);
+        }
+    </script>
+</body>
+</html>
