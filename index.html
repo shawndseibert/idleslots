@@ -303,7 +303,7 @@
             { emoji: '💎', payout3: 500, payout2: 50 }, { emoji: '🍀', payout3: 200, payout2: 30 },
             { emoji: '🔔', payout3: 100,  payout2: 20 }, { emoji: '🍇', payout3: 40,  payout2: 10 },
             { emoji: '🍊', payout3: 30,  payout2: 6 }, { emoji: '🍋', payout3: 20,  payout2: 4 },
-            { emoji: '�', payout3: 15,    payout2: 2 }
+            { emoji: '🍒', payout3: 15,    payout2: 2 }
         ];
         let weightedSymbols = [...baseSymbols];
         const anyTwoCherriesPayout = 10;
@@ -509,6 +509,9 @@
         }
 
         function getRandomSymbol() { 
+            // The isSuper flag is added to the symbol object to indicate a special version.
+            // The emoji itself remains the same, but the 'super-symbol' class is applied for a visual effect.
+            // This prevents issues with unsupported characters or rendering bugs.
             const symbol = { ...weightedSymbols[Math.floor(Math.random() * weightedSymbols.length)] };
             if (prestigeLevel > 0 && Math.random() < 0.02) {
                 symbol.isSuper = true;
