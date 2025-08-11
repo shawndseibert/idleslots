@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Idle Slot Machine</title>
+    <title>Idle Slot Machine - Ultra Rewarded Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
@@ -26,6 +26,9 @@
             pointer-events: none;
             transition: opacity 0.8s ease-in-out;
         }
+        .slot-container {
+            position: relative;
+        }
         .slot {
             width: 100px;
             height: 100px;
@@ -40,7 +43,7 @@
             overflow: hidden;
             position: relative;
             box-shadow: inset 0 6px 10px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
             flex-shrink: 1;
         }
 
@@ -128,7 +131,7 @@
         }
         @keyframes text-flash { 50% { color: #ffffff; text-shadow: 0 0 10px #ffffff; } }
         .animate-flash { animation: text-flash 0.3s ease-in-out; }
-        
+
         @keyframes pop-in {
             from { opacity: 0; transform: translateY(10px) scale(0.98); }
             to { opacity: 1; transform: translateY(0) scale(1); }
@@ -177,20 +180,10 @@
         .gamble-win-text { animation: gamble-win-text 3s cubic-bezier(0.17, 0.84, 0.44, 1); }
 
         @keyframes gamble-loss-explode {
-            0% {
-                transform: translate(-50%, -50%) scale(1);
-                opacity: 1;
-                filter: blur(0);
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(8);
-                opacity: 0;
-                filter: blur(10px);
-            }
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; filter: blur(0); }
+            100% { transform: translate(-50%, -50%) scale(8); opacity: 0; filter: blur(10px); }
         }
-        .gamble-loss-explode {
-            animation: gamble-loss-explode 1.5s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
-        }
+        .gamble-loss-explode { animation: gamble-loss-explode 1.5s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards; }
 
         @keyframes float-up {
             0% { transform: translateY(0); opacity: 1; }
@@ -231,13 +224,13 @@
         #game-container h1 { color: var(--title-color, #FBBF24); }
 
         @keyframes glow-pulse-anim {
-            0%, 100% { box-shadow: 0 0 15px 5px var(--glow-color, transparent); opacity: 0.7; }
-            50% { box-shadow: 0 0 25px 10px var(--glow-color, transparent); opacity: 1; }
+            0%, 100% { box-shadow: 0 0 15px 5px var(--glow-color, transparent), inset 0 0 10px 2px var(--spark-color, transparent); opacity: 0.7; }
+            50% { box-shadow: 0 0 25px 10px var(--glow-color, transparent), inset 0 0 20px 5px var(--spark-color, transparent); opacity: 1; }
         }
         @keyframes glow-wild-anim {
-            0% { box-shadow: 0 0 25px 10px var(--glow-color, transparent); transform: scale(1); }
-            50% { box-shadow: 0 0 40px 15px var(--glow-color, transparent); transform: scale(1.02); }
-            100% { box-shadow: 0 0 25px 10px var(--glow-color, transparent); transform: scale(1); }
+            0% { box-shadow: 0 0 25px 10px var(--glow-color, transparent), inset 0 0 15px 3px var(--spark-color, transparent); transform: scale(1); }
+            50% { box-shadow: 0 0 40px 15px var(--glow-color, transparent), inset 0 0 25px 8px var(--spark-color, transparent); transform: scale(1.02); }
+            100% { box-shadow: 0 0 25px 10px var(--glow-color, transparent), inset 0 0 15px 3px var(--spark-color, transparent); transform: scale(1); }
         }
         #game-container::before {
             content: "";
@@ -258,6 +251,89 @@
             50% { background-position: 0% 50%, 100% 100%, 100% 50%; }
             100% { background-position: 0% 50%, 0 0, 0 0; }
         }
+
+        /* --- Symbol Animations --- */
+        @keyframes symbol-win-cherry { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-15px) scale(1.1) rotate(20deg); } }
+        @keyframes symbol-win-diamond { 0% { filter: brightness(1) drop-shadow(0 0 5px #fff); } 50% { filter: brightness(2) drop-shadow(0 0 20px #60a5fa); } 100% { filter: brightness(1) drop-shadow(0 0 5px #fff); } }
+        @keyframes symbol-win-bell { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(15deg); } 75% { transform: rotate(-15deg); } }
+        .symbol-win-cherry { animation: symbol-win-cherry 0.6s ease-in-out; }
+        .symbol-win-diamond { animation: symbol-win-diamond 0.8s ease-in-out infinite; }
+        .symbol-win-bell { animation: symbol-win-bell 0.5s cubic-bezier(0.45, 0.05, 0.55, 0.95); }
+
+        @keyframes jackpot-overdrive-symbol {
+            0% { transform: scale(1); opacity: 1; }
+            40% { transform: scale(5); opacity: 0.8; }
+            100% { transform: scale(0.5); opacity: 0; }
+        }
+        .jackpot-overdrive-symbol {
+            position: absolute; font-size: 5rem; z-index: 1005; pointer-events: none;
+            animation: jackpot-overdrive-symbol 1s cubic-bezier(0.5, 0, 0.9, 0.5) forwards;
+            filter: drop-shadow(0 0 20px white);
+        }
+        @keyframes grand-jackpot-text-anim {
+            0% { opacity: 0; transform: scale(0.5) rotate(-15deg); }
+            30% { opacity: 1; transform: scale(1.2) rotate(5deg); }
+            60% { transform: scale(1.1) rotate(-3deg); }
+            100% { opacity: 1; transform: scale(1.1) rotate(0deg); }
+        }
+
+        /* --- Juice Meter --- */
+        #juice-meter-container {
+            background-color: #1f2937; border: 2px solid #4b5563; border-radius: 10px;
+            padding: 4px; margin-top: 1rem;
+        }
+        #juice-meter-bar {
+            height: 20px; border-radius: 6px;
+            background: linear-gradient(90deg, #d946ef, #a855f7, #8b5cf6);
+            width: 0%;
+            transition: width 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+            position: relative; overflow: hidden;
+        }
+        #juice-meter-bar::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%);
+            transform: translateX(-100%); animation: juice-shine 2s infinite;
+        }
+        @keyframes juice-shine {
+            to { transform: translateX(100%); }
+        }
+        @keyframes ultimate-spin-glow {
+            0%, 100% { box-shadow: 0 0 15px 5px #a855f7, 0 0 5px 2px #d946ef inset; }
+            50% { box-shadow: 0 0 25px 10px #a855f7, 0 0 10px 4px #d946ef inset; }
+        }
+        .ultimate-spin-ready {
+            animation: ultimate-spin-glow 1.5s ease-in-out infinite;
+            background-color: #a855f7; color: white;
+        }
+
+        /* Hold & Respin */
+        #hold-respin-overlay {
+            position: absolute; inset: 0; background-color: rgba(10, 5, 20, 0.9);
+            z-index: 10; display: none; flex-direction: column; justify-content: center; align-items: center;
+        }
+        #hold-respin-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+        }
+        .hold-respin-slot {
+            width: 100px; height: 100px; border-radius: 50%;
+            background-color: #4b5563; border: 3px solid #1f2937;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 2.5rem; font-weight: bold; color: #facc15;
+            text-shadow: 0 0 5px black;
+        }
+         @media (max-width: 400px) { .hold-respin-slot { width: 22vw; height: 22vw; font-size: 8vw; } }
+
+        @keyframes hold-respin-land {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .hold-respin-slot.filled {
+            background: radial-gradient(circle, #fde047, #f59e0b);
+            border-color: #fde047;
+            animation: hold-respin-land 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+
     </style>
 </head>
 <body class="text-white flex flex-col items-center justify-center min-h-screen p-4">
@@ -284,6 +360,8 @@
             </div>
         </div>
         <p id="prestige-display" class="text-center text-cyan-400 mb-2 h-5"></p>
+        <p id="grand-jackpot-display" class="text-center text-yellow-300 font-bold mb-2 h-5 text-lg"></p>
+
 
         <div id="stats-panel" class="stats-panel bg-gray-900 p-4 rounded-lg text-center mb-4 flex justify-around">
             <div class="w-1/2">
@@ -297,15 +375,27 @@
             </div>
         </div>
 
-        <div class="flex justify-center space-x-4 mb-4">
-            <div class="slot"><div id="slot1" class="slot-inner"><span>🍒</span></div></div>
-            <div class="slot"><div id="slot2" class="slot-inner"><span>🍋</span></div></div>
-            <div class="slot"><div id="slot3" class="slot-inner"><span>🍊</span></div></div>
+        <div class="slot-container">
+            <div class="flex justify-center space-x-4 mb-4">
+                <div class="slot"><div id="slot1" class="slot-inner"><span>🍒</span></div></div>
+                <div class="slot"><div id="slot2" class="slot-inner"><span>🍋</span></div></div>
+                <div class="slot"><div id="slot3" class="slot-inner"><span>🍊</span></div></div>
+            </div>
+            <div id="hold-respin-overlay">
+                <h2 id="hold-respin-title" class="text-4xl font-bold text-yellow-400 mb-4">HOLD & RESPIN</h2>
+                <div id="hold-respin-grid"></div>
+                <p id="hold-respin-counter" class="text-2xl mt-4 font-bold text-white">Respins: 3</p>
+            </div>
         </div>
+
 
         <div id="message" class="message-box text-center text-xl font-semibold h-8 mb-3"></div>
         
-        <div id="action-buttons" class="flex space-x-2 mb-3">
+        <div id="juice-meter-container">
+            <div id="juice-meter-bar"><span id="juice-meter-text" class="absolute inset-0 flex items-center justify-center font-bold text-sm text-white text-shadow-lg">JUICE METER</span></div>
+        </div>
+
+        <div id="action-buttons" class="flex space-x-2 mt-3 mb-3">
             <button id="prestigeButton" class="prestige-button w-1/3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-2 rounded-lg text-sm h-16 disabled:opacity-50 text-center">
                 Prestige (100 Wins)
             </button>
@@ -335,6 +425,7 @@
             <button id="dev-add-wins" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Add 10 Wins</button>
             <button id="dev-add-prestige" class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded">Add Prestige Lvl</button>
             <button id="dev-add-frenzy" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">Add Frenzy Token</button>
+            <button id="dev-add-juice" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded">Fill Juice Meter</button>
             <button id="dev-spawn-powerup" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded">Spawn Power-Up</button>
             <button id="dev-unlock-milestones" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded">Unlock Milestones</button>
             <button id="dev-reset" class="w-full bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-4 rounded mt-4">Full Game Reset</button>
@@ -400,7 +491,7 @@
         <h3 class="text-2xl font-bold text-yellow-300 mb-4 text-center">Game Info</h3>
         <div id="info-content-container" class="scroll-container space-y-4 text-gray-300">
             <div>
-                <h4 class="text-lg font-semibold text-purple-400 mb-2">Base Payouts</h4>
+                <h4 class="text-lg font-semibold text-purple-400 mb-2">Symbol Payouts & Upgrades</h4>
                 <div id="payout-info" class="space-y-1"></div>
             </div>
              <div>
@@ -410,11 +501,12 @@
              <div>
                 <h4 class="text-lg font-semibold text-purple-400 mt-4 mb-2">Special Rules</h4>
                 <ul class="list-disc list-inside space-y-2">
+                    <li><span class="font-bold text-purple-400">Juice Meter:</span> Every win fills the meter. A full meter lets you unleash an <span class="font-bold">ULTIMATE SPIN</span> for a guaranteed jackpot!</li>
+                    <li><span class="font-bold text-yellow-400">Hold & Respin:</span> Land 3 🪙 symbols to start a bonus round. Fill the grid to win the <span class="font-bold">GRAND JACKPOT!</span></li>
                     <li><span class="font-bold text-cyan-400">Prestige:</span> At 100 wins, you can Prestige. This resets your progress but grants a permanent <span class="font-bold">+25%</span> earnings boost per prestige level.</li>
-                    <li><span class="font-bold text-red-400">Frenzy Mode:</span> Use a Frenzy Token for 15 seconds of free, fast-paced spins with a 2x payout multiplier.</li>
-                    <li><span class="font-bold text-yellow-400">Gamble:</span> Feeling lucky? Wager a percentage of your balance for a 50/50 chance to double it or lose it.</li>
+                    <li><span class="font-bold text-red-400">Frenzy Mode:</span> Use a Frenzy Token for 15 seconds of free, fast-paced spins with a payout multiplier.</li>
                     <li><span class="font-bold text-pink-400">Intensity:</span> For every 10 wins, the game's intensity increases, making spins faster and adding visual effects.</li>
-                    <li><span class="font-bold text-yellow-300">Power-Up:</span> Randomly, a falling star (<span class="inline-block text-xl">⭐</span>) will appear. Click it for a free cash bonus that scales with your session wins!</li>
+                    <li><span class="font-bold text-yellow-300">Power-Up:</span> Randomly, a falling star (⭐) will appear. Click it for a free cash bonus that scales with your session wins!</li>
                 </ul>
             </div>
         </div>
@@ -439,15 +531,20 @@
         let weightedSymbols = [];
         const anyTwoCherriesPayout = 10;
         const anyOneCherryPayout = 4;
-        
+        let juiceMeter = 0;
+        const maxJuice = 1000;
+        let grandJackpot = 100000;
+
         // --- DOM Element Variables ---
-        let gameContainer, gameTitle, statsPanel, balanceDisplay, winCounter, prestigeDisplay,
+        let gameContainer, gameTitle, statsPanel, balanceDisplay, winCounter, prestigeDisplay, grandJackpotDisplay,
             slotElementsWithParents, slotElements, spinButton, storeButton, settingsButton,
             infoButton, prestigeButton, messageBox, devMenu, devMenuOverlay, storeMenu,
             storeMenuOverlay, settingsMenu, settingsMenuOverlay, gambleMenu, gambleMenuOverlay,
             infoMenu, infoMenuOverlay, powerUpsContainer, fallingMoneyContainer, fallingPowerUpContainer, 
             confettiContainer, frenzyButton, frenzyCoinCount, gambleButton, gambleWagerButtons, 
-            badgeDisplayContainer, masterVolumeSlider, sfxVolumeSlider, masterVolumeLabel, sfxVolumeLabel;
+            badgeDisplayContainer, masterVolumeSlider, sfxVolumeSlider, masterVolumeLabel, sfxVolumeLabel,
+            juiceMeterBar, juiceMeterText, ultimateSpinButton,
+            holdRespinOverlay, holdRespinGrid, holdRespinCounter;
 
         // --- Audio Synths & Music ---
         let volumeSettings = { master: 1, sfx: 0.75 };
@@ -463,10 +560,13 @@
         const prestigeSynth = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.1, decay: 0.5, sustain: 0.1, release: 1 } }).connect(sfxVolume);
         const frenzySynth = new Tone.AMSynth().connect(sfxVolume);
         const badgeSynth = new Tone.MembraneSynth({ pitchDecay: 0.008, octaves: 8, envelope: { attack: 0.001, decay: 0.5, sustain: 0 } }).connect(sfxVolume);
+        const juiceSynth = new Tone.FMSynth({ harmonicity: 1.5, modulationIndex: 10, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 } }).connect(sfxVolume);
+        const holdRespinSynth = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: 10, envelope: { attack: 0.001, decay: 0.3, sustain: 0 } }).connect(sfxVolume);
         let frenzyPattern;
 
         // --- Game Logic Variables ---
         let isSpinning = false;
+        let isHoldRespinActive = false;
         let coinInterval;
         let autoSpinnerInterval;
         let isFrenzyActive = false;
@@ -475,11 +575,11 @@
         const intensityColors = ['#4f46e5', '#db2777', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
         let saveTimeout;
         let isTransitioningBackground = false;
-
+        
         // --- Helper Functions ---
         function formatNumber(num) {
             const value = Math.floor(num);
-            if (value < 10000) return value; // Changed from 1e3 (1000)
+            if (value < 10000) return value.toLocaleString();
             if (value >= 1e3 && value < 1e6) return +(value / 1e3).toFixed(1) + "k";
             if (value >= 1e6 && value < 1e9) return +(value / 1e6).toFixed(1) + "M";
             if (value >= 1e9 && value < 1e12) return +(value / 1e9).toFixed(1) + "B";
@@ -493,26 +593,52 @@
         
         // --- Game Setup ---
         function initializeSymbols() {
-             baseSymbols = [ { emoji: '💎', payout3: 500, payout2: 50 }, { emoji: '🍀', payout3: 200, payout2: 30 }, { emoji: '🔔', payout3: 100,  payout2: 20 }, { emoji: '🍇', payout3: 40,  payout2: 10 }, { emoji: '🍊', payout3: 30,  payout2: 6 }, { emoji: '🍋', payout3: 20,  payout2: 4 }, { emoji: '🍒', payout3: 15,    payout2: 2 } ];
-            weightedSymbols = [...baseSymbols];
+            baseSymbols = [ 
+                { key: 'coin', emoji: '🪙', payout3: 0, payout2: 0, level: 0, basePayout3: 0, basePayout2: 0, upgradeCost: 0, isSpecial: true },
+                { key: 'diamond', emoji: '💎', payout3: 500, payout2: 50, level: 0, basePayout3: 500, basePayout2: 50, upgradeCost: 50000 }, 
+                { key: 'clover', emoji: '🍀', payout3: 200, payout2: 30, level: 0, basePayout3: 200, basePayout2: 30, upgradeCost: 20000 }, 
+                { key: 'bell', emoji: '🔔', payout3: 100,  payout2: 20, level: 0, basePayout3: 100, basePayout2: 20, upgradeCost: 10000 }, 
+                { key: 'grape', emoji: '🍇', payout3: 40,  payout2: 10, level: 0, basePayout3: 40, basePayout2: 10, upgradeCost: 4000 }, 
+                { key: 'orange', emoji: '🍊', payout3: 30,  payout2: 6, level: 0, basePayout3: 30, basePayout2: 6, upgradeCost: 3000 }, 
+                { key: 'lemon', emoji: '🍋', payout3: 20,  payout2: 4, level: 0, basePayout3: 20, basePayout2: 4, upgradeCost: 2000 }, 
+                { key: 'cherry', emoji: '🍒', payout3: 15, payout2: 2, level: 0, basePayout3: 15, basePayout2: 2, upgradeCost: 1500 }
+            ];
+            updateWeightedSymbols();
+        }
+
+        function updateWeightedSymbols() {
+            weightedSymbols = [];
+            baseSymbols.forEach(s => {
+                if (s.isSpecial) return; // Don't add special symbols like the Coin to the general pool
+                // Base weight of 10, less for valuable symbols
+                const weight = Math.max(1, 10 - Math.log2(s.basePayout3 || 1));
+                for(let i = 0; i < weight; i++) {
+                    weightedSymbols.push(s);
+                }
+            });
+            // Manually add a few coins to the weighted list to control their rarity
+            const coinSymbol = baseSymbols.find(s => s.key === 'coin');
+            if (coinSymbol) { weightedSymbols.push(coinSymbol); weightedSymbols.push(coinSymbol); }
         }
 
         function initializeBadges() {
-             badges = { winCounter: { name: 'Total Wins', unlocked: true, dynamic: true, icon: '🏆', description: 'Your total wins across all prestiges.', order: 1 }, win10: { name: 'Getting Started', unlocked: false, icon: '🥉', description: 'Reach 10 total wins.', order: 2 }, win100: { name: 'Slot Pro', unlocked: false, icon: '🥈', description: 'Reach 100 total wins.', order: 3 }, win500: { name: 'Slot Hotshot', unlocked: false, icon: '🥇', description: 'Reach 500 total wins.', order: 4 }, win1000: { name: 'Slot Master', unlocked: false, icon: '🏅', description: 'Reach 1,000 total wins.', order: 5 }, bal10k: { name: 'High Roller', unlocked: false, icon: '💰', description: 'Reach a balance of $10,000.', order: 6 }, bal100k: { name: 'Big Spender', unlocked: false, icon: '💵', description: 'Reach a balance of $100,000.', order: 7 }, bal1M: { name: 'Millionaire', unlocked: false, icon: '🤑', description: 'Reach a balance of $1,000,000.', order: 8 }, bal1B: { name: 'Billionaire', unlocked: false, icon: '💎', description: 'Reach a balance of $1,000,000,000.', order: 9 }, prestige1: { name: 'New Beginning', unlocked: false, icon: '🌀', description: 'Prestige for the first time.', order: 10 }, prestige5: { name: 'Loop Master', unlocked: false, icon: '🌌', description: 'Reach Prestige Level 5.', order: 11 }, frenzy10: { name: 'Fever Pitch', unlocked: false, icon: '🔥', description: 'Activate Frenzy Mode 10 times.', order: 12, value: 0 }, allIn: { name: 'All In!', unlocked: false, icon: '🎲', description: 'Win a 100% wager gamble.', order: 13 }, collector: { name: 'Collector', unlocked: false, icon: '🛍️', description: 'Buy one of every Power-Up.', order: 14 }, chain: { name: 'Chain Reaction', unlocked: false, icon: '⛓️', description: 'Achieve a Jackpot Chain.', order: 15 }, secretNudge: { name: 'Just a Nudge', unlocked: false, icon: '❓', description: 'Sometimes you get a little help.', order: 100, secret: true }, secretClicker: { name: 'Bored?', unlocked: false, icon: '❓', description: 'You clicked the title 10 times.', order: 101, secret: true }, };
+             badges = { winCounter: { name: 'Total Wins', unlocked: true, dynamic: true, icon: '🏆', description: 'Your total wins across all prestiges.', order: 1 }, grandJackpot: { name: 'High Roller', unlocked: false, icon: '🤑', description: 'Win the Grand Jackpot in a Hold & Respin round.', order: 16 }, win10: { name: 'Getting Started', unlocked: false, icon: '🥉', description: 'Reach 10 total wins.', order: 2 }, win100: { name: 'Slot Pro', unlocked: false, icon: '🥈', description: 'Reach 100 total wins.', order: 3 }, win500: { name: 'Slot Hotshot', unlocked: false, icon: '🥇', description: 'Reach 500 total wins.', order: 4 }, win1000: { name: 'Slot Master', unlocked: false, icon: '🏅', description: 'Reach 1,000 total wins.', order: 5 }, bal1M: { name: 'Millionaire', unlocked: false, icon: '💰', description: 'Reach a balance of $1,000,000.', order: 8 }, bal1B: { name: 'Billionaire', unlocked: false, icon: '💎', description: 'Reach a balance of $1,000,000,000.', order: 9 }, prestige1: { name: 'New Beginning', unlocked: false, icon: '🌀', description: 'Prestige for the first time.', order: 10 }, prestige5: { name: 'Loop Master', unlocked: false, icon: '🌌', description: 'Reach Prestige Level 5.', order: 11 }, frenzy10: { name: 'Fever Pitch', unlocked: false, icon: '🔥', description: 'Activate Frenzy Mode 10 times.', order: 12, value: 0 }, allIn: { name: 'All In!', unlocked: false, icon: '🎲', description: 'Win a 100% wager gamble.', order: 13 }, collector: { name: 'Collector', unlocked: false, icon: '🛍️', description: 'Buy one of every Power-Up.', order: 14 }, chain: { name: 'Chain Reaction', unlocked: false, icon: '⛓️', description: 'Achieve a Jackpot Chain.', order: 15 }, secretNudge: { name: 'Just a Nudge', unlocked: false, icon: '❓', description: 'Sometimes you get a little help.', order: 100, secret: true }, secretClicker: { name: 'Bored?', unlocked: false, icon: '❓', description: 'You clicked the title 10 times.', order: 101, secret: true }, };
         }
 
         function resetProgress() {
             initializeBadges();
             initializeSymbols();
-            powerUps = { autoSpinner: { name: 'Auto Spinner', description: 'Spins faster with each level.', cost: 200, level: 0 }, incomeBoost: { name: 'Income Boost', description: 'Increases idle income by $1/s.', cost: 250, level: 0 }, winMultiplier: { name: 'Win Multiplier', description: 'Increases all wins by 10%.', cost: 1000, level: 0 }, nudge: { name: 'Lucky Nudge', description: 'Chance to turn a near-miss into a jackpot.', cost: 750, level: 0 }, symbolMagnet: { name: 'Diamond Magnet', description: 'Increases chance of landing 💎.', cost: 1500, level: 0 }, jackpotChain: { name: 'Jackpot Chain', description: 'Jackpots can re-spin with a 2x multiplier.', cost: 5000, level: 0 }, frenzyToken: { name: 'Frenzy Token', description: '15s of free, fast, 2x-payout spins.', cost: 2000, count: 0 } };
+            powerUps = { autoSpinner: { name: 'Auto Spinner', description: 'Spins faster with each level.', cost: 200, level: 0 }, incomeBoost: { name: 'Income Boost', description: 'Increases idle income by $1/s.', cost: 250, level: 0 }, winMultiplier: { name: 'Win Multiplier', description: 'Increases all wins by 10%.', cost: 1000, level: 0 }, nudge: { name: 'Lucky Nudge', description: 'Chance to turn a near-miss into a jackpot.', cost: 750, level: 0 }, symbolMagnet: { name: 'Diamond Magnet', description: 'Increases chance of landing 💎.', cost: 1500, level: 0 }, jackpotChain: { name: 'Jackpot Chain', description: 'Jackpots can re-spin with a 2x multiplier.', cost: 5000, level: 0 }, frenzyToken: { name: 'Frenzy Token', description: '15s of free, fast, 2x-payout spins.', cost: 2000, count: 0 }, bonusBonanza: { name: 'Bonus Bonanza', description: 'Boosts effectiveness of other powerups.', cost: 10000, level: 0 }, frenzyFuel: { name: 'Frenzy Fuel', description: 'Improves Frenzy Mode duration & multiplier.', cost: 8000, level: 0 }, };
             milestones = { 250: { unlocked: false, description: 'Unlock the 👑 symbol!' }, 500: { unlocked: false, description: 'Win Multiplier is now 5% more effective!' }, 1000: { unlocked: false, description: 'Unlock the Inferno theme!' } };
+            juiceMeter = 0;
+            grandJackpot = 100000;
         }
         
         // --- Save & Load ---
         function saveGameState() {
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => {
-                const gameState = { balance, wins, totalWins, idleIncome, prestigeLevel, powerUps, milestones, badges, secretTitleClicks, volumeSettings };
+                const gameState = { balance, wins, totalWins, idleIncome, prestigeLevel, powerUps, milestones, badges, secretTitleClicks, volumeSettings, juiceMeter, grandJackpot, symbolLevels: baseSymbols.map(s => ({ key: s.key, level: s.level })) };
                 localStorage.setItem('idleSlotMachineSave', JSON.stringify(gameState));
             }, 500);
         }
@@ -530,20 +656,33 @@
                     idleIncome = gameState.idleIncome ?? 1;
                     prestigeLevel = gameState.prestigeLevel ?? 0;
                     secretTitleClicks = gameState.secretTitleClicks ?? 0;
+                    juiceMeter = gameState.juiceMeter ?? 0;
+                    grandJackpot = gameState.grandJackpot ?? 100000;
+
                     if (gameState.volumeSettings) volumeSettings = { ...volumeSettings, ...gameState.volumeSettings };
                     if (gameState.badges) { Object.keys(gameState.badges).forEach(key => { if (badges[key]) { badges[key] = { ...badges[key], ...gameState.badges[key] }; } }); }
                     if (gameState.powerUps) { Object.keys(gameState.powerUps).forEach(key => { if (powerUps[key]) { powerUps[key] = { ...powerUps[key], ...gameState.powerUps[key] }; } }); }
                     if (gameState.milestones) { Object.keys(gameState.milestones).forEach(key => { if (milestones[key]) { milestones[key] = { ...milestones[key], ...gameState.milestones[key] }; } }); }
-                
-                    if (milestones[250]?.unlocked && !baseSymbols.some(s => s.emoji === '👑')) { baseSymbols.unshift({ emoji: '👑', payout3: 1000, payout2: 100 }); }
-                    weightedSymbols = [...baseSymbols];
+                    if (gameState.symbolLevels) {
+                        gameState.symbolLevels.forEach(savedSymbol => {
+                            const symbol = baseSymbols.find(s => s.key === savedSymbol.key);
+                            if (symbol) {
+                                for (let i = 0; i < savedSymbol.level; i++) {
+                                    applySymbolUpgrade(symbol, false); // apply without cost
+                                }
+                            }
+                        });
+                    }
 
+                    if (milestones[250]?.unlocked && !baseSymbols.some(s => s.emoji === '👑')) { baseSymbols.unshift({ key: 'king', emoji: '👑', payout3: 1000, payout2: 100, level: 0, basePayout3: 1000, basePayout2: 100, upgradeCost: 100000 }); }
+                    
                     if (powerUps.autoSpinner.level > 0) {
                         const autoSpinSpeed = Math.max(400, 3000 - (powerUps.autoSpinner.level - 1) * 400);
                         autoSpinnerInterval = setInterval(spin, autoSpinSpeed);
                         spinButton.textContent = 'Auto';
                     }
                     if (powerUps.symbolMagnet.level > 0) {
+                        updateWeightedSymbols(); // re-init
                         const diamond = baseSymbols.find(s => s.emoji === '💎');
                         if (diamond) { for (let i = 0; i < powerUps.symbolMagnet.level * 2; i++) weightedSymbols.push(diamond); }
                     }
@@ -560,6 +699,7 @@
             updateWinCounter();
             updatePrestigeButton();
             updateIntensity();
+            updateJuiceMeter();
             renderInfo();
             renderBadges();
         }
@@ -575,8 +715,8 @@
             balanceDisplay.textContent = `$${formatNumber(balance)}`;
             balanceDisplay.classList.add('animate-flash');
             setTimeout(() => balanceDisplay.classList.remove('animate-flash'), 300);
-            if (!isSpinning) { spinButton.disabled = balance < spinCost; }
-            gambleButton.disabled = balance <= 0;
+            if (!isSpinning) { spinButton.disabled = balance < spinCost || isHoldRespinActive; }
+            gambleButton.disabled = balance <= 0 || isHoldRespinActive;
             checkBadgeUnlocks();
         }
         function updateWinCounter() { 
@@ -595,6 +735,38 @@
                 prestigeButton.textContent = 'Prestige (100 Wins)';
             }
         }
+
+        function updateJuiceMeter() {
+            const percentage = Math.min(100, (juiceMeter / maxJuice) * 100);
+            juiceMeterBar.style.width = `${percentage}%`;
+
+            if (percentage >= 100) {
+                spinButton.classList.add('ultimate-spin-ready');
+                spinButton.textContent = "ULTIMATE SPIN";
+                juiceMeterText.textContent = "READY!";
+            } else {
+                spinButton.classList.remove('ultimate-spin-ready');
+                 if (powerUps.autoSpinner.level > 0) {
+                    spinButton.textContent = 'Auto';
+                } else {
+                    spinButton.textContent = `Spin ($${spinCost})`;
+                }
+                juiceMeterText.textContent = "JUICE METER";
+            }
+        }
+
+        function addJuice(amount) {
+            if (juiceMeter >= maxJuice) return;
+            juiceMeter = Math.min(maxJuice, juiceMeter + amount);
+            if(isAudioReady && juiceMeter < maxJuice) {
+                juiceSynth.frequency.value = 200 + (juiceMeter/maxJuice) * 400;
+                juiceSynth.triggerAttackRelease("16n");
+            } else if (isAudioReady && juiceMeter >= maxJuice) {
+                levelUpSynth.triggerAttackRelease("C5", "4n");
+            }
+            updateJuiceMeter();
+        }
+
 
         function updateBackground(isInstant = false) {
             if (isTransitioningBackground && !isInstant) return;
@@ -677,8 +849,13 @@
         }
 
         function spin(options = {}) {
+            if (juiceMeter >= maxJuice) {
+                triggerUltimateSpin();
+                return;
+            }
+
             const { isFree = false, isChain = false, chainMultiplier = 1 } = options;
-            if (isSpinning || (balance < spinCost && !isFree)) {
+            if (isSpinning || isHoldRespinActive ||(balance < spinCost && !isFree)) {
                 if(balance < spinCost && !isSpinning && !isFree) { if(isAudioReady) errorSynth.triggerAttackRelease("C2", "8n"); showMessage("Not enough money!", 'text-red-400'); }
                 return;
             }
@@ -691,20 +868,61 @@
             if (isFrenzyActive) spinDuration = 250;
             
             let spinIntervals = [];
-            slotElements.forEach((reel, index) => { spinIntervals[index] = setInterval(() => { 
-                const symbol = getRandomSymbol();
-                reel.innerHTML = `<span class="${symbol.isSuper ? 'super-symbol' : ''}">${symbol.emoji}</span>`;
-            }, 50); });
+            slotElements.forEach((reel, index) => { 
+                reel.parentElement.classList.remove('win-pulse', 'jackpot-glow');
+                spinIntervals[index] = setInterval(() => { 
+                    const symbol = getRandomSymbol();
+                    reel.innerHTML = `<span class="${symbol.isSuper ? 'super-symbol' : ''}">${symbol.emoji}</span>`;
+                }, 50); 
+            });
             const finalSymbols = [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()];
             setTimeout(() => stopReel(0, finalSymbols[0], spinIntervals[0]), spinDuration * 0.5);
             setTimeout(() => stopReel(1, finalSymbols[1], spinIntervals[1]), spinDuration * 0.75);
             setTimeout(() => stopReel(2, finalSymbols[2], spinIntervals[2], () => { isSpinning = false; checkWin(finalSymbols, {isChain, chainMultiplier}); updateBalanceDisplay(); }), spinDuration);
         }
 
+        function triggerUltimateSpin() {
+            if (juiceMeter < maxJuice) return;
+            juiceMeter = 0;
+            updateJuiceMeter();
+            if(isAudioReady) prestigeSynth.triggerAttackRelease("G4", "1s");
+
+            isSpinning = true;
+            spinButton.disabled = true;
+
+            let spinIntervals = [];
+            slotElements.forEach((reel, index) => {
+                spinIntervals[index] = setInterval(() => {
+                    reel.innerHTML = `<span>${getRandomSymbol().emoji}</span>`;
+                }, 50);
+            });
+            
+            const jackpotSymbol = weightedSymbols.reduce((a, b) => a.payout3 > b.payout3 ? a : b);
+            const finalSymbols = [jackpotSymbol, jackpotSymbol, jackpotSymbol];
+
+            setTimeout(() => {
+                clearInterval(spinIntervals[0]);
+                slotElements[0].innerHTML = `<span>${finalSymbols[0].emoji}</span>`;
+            }, 1500);
+            setTimeout(() => {
+                clearInterval(spinIntervals[1]);
+                slotElements[1].innerHTML = `<span>${finalSymbols[1].emoji}</span>`;
+            }, 2000);
+            setTimeout(() => {
+                clearInterval(spinIntervals[2]);
+                slotElements[2].innerHTML = `<span>${finalSymbols[2].emoji}</span>`;
+                isSpinning = false;
+                checkWin(finalSymbols, { isUltimate: true });
+                updateBalanceDisplay();
+            }, 2500);
+        }
+
         function stopReel(reelIndex, finalSymbol, intervalId, callback) {
             clearInterval(intervalId);
             if(isAudioReady) membraneSynth.triggerAttackRelease("C3", "8n", Tone.now());
-            slotElements[reelIndex].innerHTML = `<span class="${finalSymbol.isSuper ? 'super-symbol' : ''}">${finalSymbol.emoji}</span>`;
+            const symbolData = baseSymbols.find(s => s.key === finalSymbol.key);
+            let symbolGlowClass = symbolData && symbolData.level > 1 ? 'super-symbol' : '';
+            slotElements[reelIndex].innerHTML = `<span class="${finalSymbol.isSuper || symbolGlowClass ? 'super-symbol' : ''}">${finalSymbol.emoji}</span>`;
             if (callback) callback();
         }
 
@@ -721,6 +939,7 @@
             
             gameContainer.classList.remove('is-glowing', 'glow-pulse', 'glow-wild');
             gameContainer.style.animationDuration = '';
+            gameContainer.style.setProperty('--spark-color', 'transparent');
 
             if (intensityLevel > 0) {
                 const colorIndex = (intensityLevel - 1) % intensityColors.length;
@@ -728,6 +947,10 @@
                 
                 gameContainer.style.setProperty('--glow-color', color);
                 gameContainer.classList.add('is-glowing');
+
+                if (intensityLevel > 3) {
+                     gameContainer.style.setProperty('--spark-color', '#fbbf24');
+                }
 
                 if (intensityLevel <= 10) {
                     gameContainer.classList.add('glow-pulse');
@@ -771,34 +994,82 @@
             setTimeout(() => { coin.remove(); }, 4000);
         }
         
-        function triggerWinAnimation(reels, animationClass) {
-            const parentSlots = reels.map(reel => reel.parentElement);
-            parentSlots.forEach(slot => {
-                slot.classList.add(animationClass);
-                setTimeout(() => slot.classList.remove(animationClass), 800);
+        function triggerWinAnimation(winningReelsIndices, winType) {
+            winningReelsIndices.forEach(index => {
+                const slotParent = slotElementsWithParents[index];
+                const symbolEl = slotElements[index].querySelector('span');
+                const symbolData = baseSymbols.find(s => s.emoji === symbolEl.textContent);
+
+                if (winType === 'jackpot') {
+                    slotParent.classList.add('jackpot-glow');
+                } else {
+                    slotParent.classList.add('win-pulse');
+                }
+
+                if (symbolData) {
+                    let animationClass = '';
+                    switch (symbolData.key) {
+                        case 'cherry': animationClass = 'symbol-win-cherry'; break;
+                        case 'diamond': animationClass = 'symbol-win-diamond'; break;
+                        case 'bell': animationClass = 'symbol-win-bell'; break;
+                    }
+                    if (animationClass && symbolEl) {
+                        symbolEl.classList.add(animationClass);
+                        setTimeout(() => symbolEl.classList.remove(animationClass), 800);
+                    }
+                }
             });
+        }
+        
+        function triggerJackpotOverdrive(symbol) {
+            gameContainer.classList.add('screen-shake');
+            setTimeout(() => gameContainer.classList.remove('screen-shake'), 500);
+
+            slotElements.forEach(slot => {
+                const el = document.createElement('div');
+                el.className = 'jackpot-overdrive-symbol';
+                el.textContent = symbol.emoji;
+                const rect = slot.getBoundingClientRect();
+                const containerRect = gameContainer.getBoundingClientRect();
+                el.style.left = `${rect.left - containerRect.left + rect.width / 2}px`;
+                el.style.top = `${rect.top - containerRect.top + rect.height / 2}px`;
+                gameContainer.appendChild(el);
+                el.addEventListener('animationend', () => el.remove());
+            });
+
+            createConfetti();
         }
 
         function checkWin(resultSymbols, spinOptions = {}) {
-            let { isChain = false, chainMultiplier = 1 } = spinOptions;
-            let winnings = 0, winType = 'none', winningReels = [];
+            let { isChain = false, chainMultiplier = 1, isUltimate = false } = spinOptions;
+
+            // Check for Hold & Respin trigger first
+            if (resultSymbols.filter(s => s.key === 'coin').length >= 3) {
+                startHoldAndRespin(resultSymbols);
+                return;
+            }
+
+            let winnings = 0, winType = 'none', winningIndices = [];
             let hadNudge = false;
             
+            const bonusBonanzaLvl = powerUps.bonusBonanza.level;
+            const nudgeChanceBonus = bonusBonanzaLvl * 0.02;
+
             if (powerUps.nudge.level > 0 && !isFrenzyActive) {
                 const [s1, s2, s3] = resultSymbols;
-                const nudgeChance = powerUps.nudge.level * 0.05;
+                const nudgeChance = powerUps.nudge.level * 0.05 + nudgeChanceBonus;
                  if ((s1.emoji === s2.emoji && s1.emoji !== s3.emoji && Math.random() < nudgeChance) || (s2.emoji === s3.emoji && s2.emoji !== s1.emoji && Math.random() < nudgeChance)) {
                      hadNudge = true;
                 }
                 if (s1.emoji === s2.emoji && s1.emoji !== s3.emoji && hadNudge) {
                     resultSymbols[2] = s1;
-                    slotElements[2].innerHTML = `<span class="${s1.isSuper ? 'super-symbol' : ''}">${s1.emoji}</span>`;
+                    stopReel(2, s1, null);
                     slotElementsWithParents[2].classList.add('nudge-animation');
                     setTimeout(() => slotElementsWithParents[2].classList.remove('nudge-animation'), 800);
                     if (unlockBadge('secretNudge')) showMessage('Nudge!', 'text-emerald-400');
                 } else if (s2.emoji === s3.emoji && s2.emoji !== s1.emoji && hadNudge) {
                     resultSymbols[0] = s2;
-                    slotElements[0].innerHTML = `<span class="${s2.isSuper ? 'super-symbol' : ''}">${s2.emoji}</span>`;
+                    stopReel(0, s2, null);
                     slotElementsWithParents[0].classList.add('nudge-animation');
                     setTimeout(() => slotElementsWithParents[0].classList.remove('nudge-animation'), 800);
                     if (unlockBadge('secretNudge')) showMessage('Nudge!', 'text-emerald-400');
@@ -806,19 +1077,22 @@
             }
             
             const [s1, s2, s3] = resultSymbols;
-            if (s1.emoji === s2.emoji && s2.emoji === s3.emoji) { winnings = s1.payout3; winType = 'jackpot'; winningReels = slotElements; }
-            else if (s1.emoji === s2.emoji) { winnings = s1.payout2; winType = 'regular'; winningReels = [slotElements[0], slotElements[1]]; }
-            else if (s2.emoji === s3.emoji) { winnings = s2.payout2; winType = 'regular'; winningReels = [slotElements[1], slotElements[2]]; }
+            if (s1.emoji === s2.emoji && s2.emoji === s3.emoji && !s1.isSpecial) { winnings = s1.payout3; winType = 'jackpot'; winningIndices = [0, 1, 2]; }
+            else if (s1.emoji === s2.emoji && !s1.isSpecial) { winnings = s1.payout2; winType = 'regular'; winningIndices = [0, 1]; }
+            else if (s2.emoji === s3.emoji && !s2.isSpecial) { winnings = s2.payout2; winType = 'regular'; winningIndices = [1, 2]; }
             else {
                 const cherryCount = resultSymbols.reduce((count, s, i) => { if (s.emoji === '🍒') count.indices.push(i); return count; }, { indices: [] });
-                if (cherryCount.indices.length === 2) { winnings = anyTwoCherriesPayout; winType = 'small'; winningReels = cherryCount.indices.map(i => slotElements[i]); }
-                else if (cherryCount.indices.length === 1) { winnings = anyOneCherryPayout; winType = 'small'; winningReels = cherryCount.indices.map(i => slotElements[i]); }
+                if (cherryCount.indices.length === 2) { winnings = anyTwoCherriesPayout; winType = 'small'; winningIndices = cherryCount.indices; }
+                else if (cherryCount.indices.length === 1) { winnings = anyOneCherryPayout; winType = 'small'; winningIndices = cherryCount.indices; }
             }
 
             if (winnings > 0) {
                 const milestoneBonus = milestones[500]?.unlocked ? 0.05 : 0;
-                let finalMultiplier = (1 + (powerUps.winMultiplier.level * (0.1 + milestoneBonus))) * (1 + (prestigeLevel * 0.25));
-                if (isFrenzyActive) finalMultiplier *= 2;
+                const winMultiplierBonus = bonusBonanzaLvl * 0.05;
+                const frenzyMultiplierBonus = powerUps.frenzyFuel.level * 0.5;
+
+                let finalMultiplier = (1 + (powerUps.winMultiplier.level * (0.1 + milestoneBonus + winMultiplierBonus))) * (1 + (prestigeLevel * 0.25));
+                if (isFrenzyActive) finalMultiplier *= (2 + frenzyMultiplierBonus);
                 if (isChain) { finalMultiplier *= chainMultiplier; unlockBadge('chain'); }
                 if (resultSymbols.some(s => s.isSuper)) finalMultiplier *= 10;
                 winnings *= finalMultiplier;
@@ -828,6 +1102,10 @@
                 totalWins++; 
                 updateWinCounter();
                 updateBackground();
+                addJuice(winnings);
+                grandJackpot += winnings * 0.01; // 1% of all wins go to grand jackpot
+                updateGrandJackpotDisplay();
+
 
                 const newIntensity = Math.floor(wins / 10);
                 if (newIntensity > oldIntensity) { 
@@ -836,19 +1114,21 @@
                     updateIntensity(); 
                 }
                 
+                triggerWinAnimation(winningIndices, winType);
+
                 if (winType === 'jackpot') {
                     let jackpotMessage = isChain ? `Chain x${chainMultiplier}! +$${formatNumber(winnings)}` : `Jackpot! +$${formatNumber(winnings)}`;
+                    if(isUltimate) jackpotMessage = `ULTIMATE! +$${formatNumber(winnings)}`;
                     showMessage(jackpotMessage, 'text-green-400', 3000);
-                    triggerWinAnimation(winningReels, 'jackpot-glow');
-                    if(isAudioReady) {
-                        const now = Tone.now(); jackpotSynth.triggerAttackRelease(["C4", "E4", "G4"], "8n", now);
-                    }
-                    if (powerUps.jackpotChain.level > 0 && Math.random() < powerUps.jackpotChain.level * 0.05) {
+                    if(isAudioReady) { const now = Tone.now(); jackpotSynth.triggerAttackRelease(["C4", "E4", "G4"], "8n", now); }
+                    triggerJackpotOverdrive(resultSymbols[0]);
+                    
+                    const chainChanceBonus = bonusBonanzaLvl * 0.02;
+                    if (powerUps.jackpotChain.level > 0 && Math.random() < (powerUps.jackpotChain.level * 0.05 + chainChanceBonus)) {
                         setTimeout(() => spin({ isFree: true, isChain: true, chainMultiplier: chainMultiplier * 2 }), 1500);
                     }
                 } else {
                     showMessage(`+ $${formatNumber(winnings)}`, 'text-blue-400');
-                    triggerWinAnimation(winningReels, 'win-pulse');
                     if(isAudioReady) {
                         winSynth.harmonicity = 5.1 + newIntensity * 1.5; winSynth.frequency.value = 250 + newIntensity * 25;
                         winSynth.triggerAttackRelease("C5", "8n", Tone.now());
@@ -859,7 +1139,7 @@
             }
         }
         
-        function startIdleIncome() { setInterval(() => { if (!isSpinning) { balance += (idleIncome * (1 + prestigeLevel * 0.25)); updateBalanceDisplay(); } }, idleInterval); }
+        function startIdleIncome() { setInterval(() => { if (!isSpinning && !isHoldRespinActive) { balance += (idleIncome * (1 + prestigeLevel * 0.25)); updateBalanceDisplay(); } }, idleInterval); }
 
         function renderStore() {
             powerUpsContainer.innerHTML = '';
@@ -882,19 +1162,50 @@
         function renderInfo() {
             const payoutContainer = document.getElementById('payout-info');
             payoutContainer.innerHTML = '';
-            let tableHTML = `<table class="w-full text-left border-collapse"><thead><tr class="border-b border-gray-700"><th class="py-2 text-lg text-center">Symbol</th><th class="py-2 text-lg text-center">3 of a Kind</th><th class="py-2 text-lg text-center">2 of a Kind</th></tr></thead><tbody>`;
-            [...baseSymbols].sort((a,b) => b.payout3 - a.payout3).forEach(symbol => {
-                 tableHTML += `<tr class="border-b border-gray-800"><td class="py-2 text-2xl text-center">${symbol.emoji}</td><td class="py-2 text-lg text-center font-bold text-green-400">$${formatNumber(symbol.payout3)}</td><td class="py-2 text-lg text-center font-bold text-green-500">$${formatNumber(symbol.payout2)}</td></tr>`;
+            let tableHTML = `<table class="w-full text-left border-collapse"><thead><tr class="border-b border-gray-700"><th class="py-2 text-lg text-center">Symbol</th><th class="py-2 text-lg text-center">3x</th><th class="py-2 text-lg text-center">2x</th><th class="py-2 text-lg text-center">Upgrade</th></tr></thead><tbody>`;
+            [...baseSymbols].filter(s => !s.isSpecial).sort((a,b) => b.basePayout3 - a.basePayout3).forEach(symbol => {
+                 const upgradeButton = `<button data-key="${symbol.key}" class="upgrade-symbol-button bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-1 px-2 rounded-lg text-xs disabled:bg-gray-500" ${balance < symbol.upgradeCost ? 'disabled' : ''}>Lvl ${symbol.level} <br>($${formatNumber(symbol.upgradeCost)})</button>`;
+                 tableHTML += `<tr class="border-b border-gray-800"><td class="py-2 text-2xl text-center">${symbol.emoji}</td><td class="py-2 text-lg text-center font-bold text-green-400">$${formatNumber(symbol.payout3)}</td><td class="py-2 text-lg text-center font-bold text-green-500">$${formatNumber(symbol.payout2)}</td><td class="py-2 text-center">${upgradeButton}</td></tr>`;
             });
             tableHTML += `</tbody></table>`;
             tableHTML += `<div class="mt-4 pt-2 border-t border-gray-700 space-y-2"><div class="flex items-center justify-between text-md"><span class="text-gray-400">Any Two 🍒</span><span class="font-bold text-green-500">$${formatNumber(anyTwoCherriesPayout)}</span></div><div class="flex items-center justify-between text-md"><span class="text-gray-400">Any One 🍒</span><span class="font-bold text-green-500">$${formatNumber(anyOneCherryPayout)}</span></div></div>`;
             payoutContainer.innerHTML = tableHTML;
+            payoutContainer.querySelectorAll('.upgrade-symbol-button').forEach(btn => {
+                btn.addEventListener('click', (e) => upgradeSymbol(e.target.dataset.key));
+            });
+
             const badgeInfoContainer = document.getElementById('badge-info');
             badgeInfoContainer.innerHTML = '';
             Object.values(badges).filter(b => !b.secret).sort((a, b) => a.order - b.order).forEach(badge => {
                     badgeInfoContainer.innerHTML += `<div class="flex items-center"><span class="text-2xl mr-3">${badge.icon}</span><div><p class="font-semibold text-white">${badge.name}</p><p class="text-sm text-gray-400">${badge.description}</p></div></div>`;
             });
              badgeInfoContainer.innerHTML += `<div class="flex items-center"><span class="text-2xl mr-3">❓</span><p class="font-semibold text-white">???</p></div><div class="flex items-center"><span class="text-2xl mr-3">❓</span><p class="font-semibold text-white">???</p></div>`;
+        }
+
+        function upgradeSymbol(key) {
+            const symbol = baseSymbols.find(s => s.key === key);
+            if (!symbol || balance < symbol.upgradeCost) return;
+            
+            balance -= symbol.upgradeCost;
+            if(isAudioReady) purchaseSynth.triggerAttackRelease("A5", "8n");
+            
+            applySymbolUpgrade(symbol, true);
+
+            updateBalanceDisplay();
+            renderInfo(); // Re-render to show new costs and levels
+            saveGameState();
+        }
+
+        function applySymbolUpgrade(symbol, isNewPurchase) {
+            if (isNewPurchase) symbol.level++;
+            symbol.payout3 = Math.floor(symbol.payout3 * 1.5);
+            symbol.payout2 = Math.floor(symbol.payout2 * 1.5);
+            symbol.upgradeCost = Math.floor(symbol.upgradeCost * 2);
+
+            if (symbol.level >= 2) {
+                // E.g., make it a 'super symbol' permanently in terms of visuals
+                updateWeightedSymbols();
+            }
         }
 
         function buyPowerUp(key) {
@@ -904,7 +1215,7 @@
                 if(isAudioReady) purchaseSynth.triggerAttackRelease("C5", "8n");
                 if (pu.hasOwnProperty('level')) {
                     pu.level++;
-                    pu.cost *= 1.4;
+                    pu.cost = Math.floor(pu.cost * 1.6);
                     if (key === 'incomeBoost') idleIncome++;
                     else if (key === 'autoSpinner') {
                         clearInterval(autoSpinnerInterval);
@@ -912,7 +1223,7 @@
                         autoSpinnerInterval = setInterval(spin, autoSpinSpeed);
                         spinButton.textContent = 'Auto';
                     } else if (key === 'symbolMagnet') {
-                        weightedSymbols = [...baseSymbols];
+                        updateWeightedSymbols();
                         const diamond = baseSymbols.find(s => s.emoji === '💎');
                         if (diamond) { for (let i = 0; i < pu.level * 2; i++) weightedSymbols.push(diamond); }
                     }
@@ -948,6 +1259,7 @@
                 frenzyPattern = new Tone.Pattern((time, note) => { frenzySynth.triggerAttackRelease(note, '16n', time); }, ["C4", "E4", "G4", "C5"], "up").start(0);
                 Tone.Transport.start();
             }
+            const frenzyDuration = 15000 + (powerUps.frenzyFuel.level * 2000);
             const frenzySpinInterval = setInterval(() => spin({isFree: true}), 300);
             frenzyButton.disabled = true;
             frenzyButton.classList.add('frenzy-glow', 'screen-shake');
@@ -959,7 +1271,7 @@
                     Tone.Transport.stop();
                 }
                 updateFrenzyButton(); 
-            }, 15000);
+            }, frenzyDuration);
         }
         
         function fullReset(isPrestige = false) {
@@ -989,6 +1301,8 @@
             updateBalanceDisplay();
             updateWinCounter();
             updateIntensity();
+            updateJuiceMeter();
+            updateGrandJackpotDisplay();
             renderInfo();
             renderBadges();
             saveGameState();
@@ -1008,7 +1322,7 @@
                     milestones[winCount].unlocked = true;
                     showMessage(`Milestone! ${milestones[winCount].description}`, 'text-yellow-300', 4000);
                     if (winCount == 250) {
-                        if (!baseSymbols.some(s => s.emoji === '👑')) { baseSymbols.unshift({ emoji: '👑', payout3: 1000, payout2: 100 }); weightedSymbols = [...baseSymbols]; }
+                        if (!baseSymbols.some(s => s.emoji === '👑')) { baseSymbols.unshift({ key: 'king', emoji: '👑', payout3: 1000, payout2: 100, level: 0, basePayout3: 1000, basePayout2: 100, upgradeCost: 100000 }); updateWeightedSymbols(); }
                     } else if (winCount == 1000) {
                         gameContainer.classList.add('theme-inferno');
                     }
@@ -1030,8 +1344,6 @@
             powerUpElement.style.animationDuration = '5s';
             powerUpElement.style.fontSize = '3rem';
             powerUpElement.style.cursor = 'pointer';
-            
-            // This is the corrected line:
             powerUpElement.style.zIndex = '1003';
 
             powerUpElement.addEventListener('click', (event) => {
@@ -1062,8 +1374,6 @@
             if (totalWins >= 500) unlockBadge('win500');
             if (totalWins >= 1000) unlockBadge('win1000');
             if (badges.frenzy10?.value >= 10) unlockBadge('frenzy10');
-            if (balance >= 10000) unlockBadge('bal10k');
-            if (balance >= 100000) unlockBadge('bal100k');
             if (balance >= 1000000) unlockBadge('bal1M');
             if (balance >= 1000000000) unlockBadge('bal1B');
             if (prestigeLevel >= 1) unlockBadge('prestige1');
@@ -1115,6 +1425,7 @@
             }
         }
 
+        // --- Gamble Effects (unchanged) ---
         function showGambleWinEffect(winnings, wagerPercentage) {
             const winText = document.createElement('div');
             winText.textContent = `+$${formatNumber(winnings)}`;
@@ -1168,7 +1479,6 @@
                 showGambleWinEffect(wager * 2, percentage);
                 if (percentage === 1.00) unlockBadge('allIn');
             } else {
-                // This line plays the sound effect on a loss
                 if(isAudioReady) {
                     const now = Tone.now();
                     winSynth.triggerAttackRelease("B5", "16n", now);
@@ -1188,6 +1498,121 @@
             saveGameState();
             toggleMenu(gambleMenu, gambleMenuOverlay);
         }
+
+        // --- Hold & Respin Logic ---
+        function updateGrandJackpotDisplay() {
+            grandJackpotDisplay.textContent = `GRAND JACKPOT: $${formatNumber(grandJackpot)}`;
+        }
+
+        function startHoldAndRespin(triggerSymbols) {
+            isHoldRespinActive = true;
+            spinButton.disabled = true;
+            gambleButton.disabled = true;
+            holdRespinOverlay.style.display = 'flex';
+            holdRespinGrid.innerHTML = '';
+            
+            let respins = 3;
+            let gridValues = Array(9).fill(null);
+            let totalWinnings = 0;
+
+            if(isAudioReady) {
+                const now = Tone.now();
+                levelUpSynth.triggerAttackRelease("C4", "2n", now);
+                levelUpSynth.triggerAttackRelease("G4", "2n", now + 0.1);
+            }
+
+            // Place initial coins
+            for(let i=0; i<3; i++) {
+                if (triggerSymbols[i].key === 'coin') {
+                    gridValues[i*3 + i] = Math.floor((5 + Math.random() * 45) * spinCost);
+                }
+            }
+
+            function renderGrid() {
+                holdRespinGrid.innerHTML = '';
+                for (let i = 0; i < 9; i++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'hold-respin-slot';
+                    if (gridValues[i] !== null) {
+                        slot.classList.add('filled');
+                        slot.textContent = `+${formatNumber(gridValues[i])}`;
+                    }
+                    holdRespinGrid.appendChild(slot);
+                }
+                holdRespinCounter.textContent = `Respins: ${respins}`;
+            }
+
+            function endRound() {
+                isHoldRespinActive = false;
+                holdRespinOverlay.style.display = 'none';
+                updateBalanceDisplay();
+                
+                let filledCount = gridValues.filter(v => v !== null).length;
+                if(filledCount === 9) {
+                    // GRAND JACKPOT!
+                    showMessage(`GRAND JACKPOT! +$${formatNumber(grandJackpot)}`, 'text-yellow-300', 8000);
+                    balance += grandJackpot;
+                    if(isAudioReady) prestigeSynth.triggerAttackRelease("A5", "1s");
+                    unlockBadge('grandJackpot');
+                    
+                    const textEl = document.createElement('div');
+                    textEl.textContent = `GRAND JACKPOT!`;
+                    textEl.className = 'absolute text-6xl font-black text-yellow-300 z-20';
+                    textEl.style.textShadow = '0 0 20px black, 0 0 30px black';
+                    textEl.style.top = '50%';
+                    textEl.style.left = '50%';
+                    textEl.style.transform = 'translate(-50%, -50%)';
+                    textEl.style.animation = 'grand-jackpot-text-anim 1s forwards';
+                    holdRespinOverlay.appendChild(textEl);
+                    createConfetti();
+
+                    setTimeout(() => {
+                        grandJackpot = 100000; // Reset jackpot
+                        updateGrandJackpotDisplay();
+                        textEl.remove();
+                    }, 4000);
+
+                } else {
+                    gridValues.forEach(val => totalWinnings += val || 0);
+                    balance += totalWinnings;
+                    showMessage(`You won $${formatNumber(totalWinnings)}!`, 'text-green-400', 4000);
+                }
+                updateBalanceDisplay();
+                saveGameState();
+            }
+
+            function doRespin() {
+                if (respins <= 0) {
+                    endRound();
+                    return;
+                }
+                respins--;
+                let newCoinLanded = false;
+                
+                for (let i = 0; i < 9; i++) {
+                    if (gridValues[i] === null && Math.random() < 0.25) { // Chance to land a new coin
+                        gridValues[i] = Math.floor((5 + Math.random() * 45) * spinCost);
+                        newCoinLanded = true;
+                        if(isAudioReady) holdRespinSynth.triggerAttackRelease("G4", "8n");
+                    }
+                }
+
+                if (newCoinLanded) {
+                    respins = 3; // Reset
+                }
+                renderGrid();
+
+                if (gridValues.every(v => v !== null)) {
+                    endRound();
+                    return;
+                }
+
+                setTimeout(doRespin, 1000);
+            }
+            renderGrid();
+            setTimeout(doRespin, 1000);
+        }
+
 
         function applyVolumeSettings() {
             masterVolume.volume.value = Tone.gainToDb(volumeSettings.master);
@@ -1219,6 +1644,9 @@
         function toggleMenu(menu, overlay) {
             menu.classList.toggle('hidden');
             overlay.classList.toggle('hidden');
+            if (!infoMenu.classList.contains('hidden')) {
+                renderInfo();
+            }
         }
 
         function setupEventListeners() {
@@ -1258,6 +1686,7 @@
             document.getElementById('dev-add-frenzy').addEventListener('click', () => { powerUps.frenzyToken.count++; updateFrenzyButton(); saveGameState(); });
             document.getElementById('dev-unlock-milestones').addEventListener('click', () => { wins = 1000; updateWinCounter(); checkMilestones(); saveGameState(); });
             document.getElementById('dev-spawn-powerup').addEventListener('click', spawnRandomPowerUp);
+            document.getElementById('dev-add-juice').addEventListener('click', () => { addJuice(maxJuice); });
         }
         
         // --- Initialization ---
@@ -1268,6 +1697,7 @@
             balanceDisplay = document.getElementById('balance');
             winCounter = document.getElementById('win-counter');
             prestigeDisplay = document.getElementById('prestige-display');
+            grandJackpotDisplay = document.getElementById('grand-jackpot-display');
             slotElementsWithParents = Array.from(document.querySelectorAll('.slot'));
             slotElements = slotElementsWithParents.map(el => el.querySelector('.slot-inner'));
             spinButton = document.getElementById('spinButton');
@@ -1299,12 +1729,19 @@
             sfxVolumeSlider = document.getElementById('sfx-volume');
             masterVolumeLabel = document.getElementById('master-volume-label');
             sfxVolumeLabel = document.getElementById('sfx-volume-label');
+            juiceMeterBar = document.getElementById('juice-meter-bar');
+            juiceMeterText = document.getElementById('juice-meter-text');
+            holdRespinOverlay = document.getElementById('hold-respin-overlay');
+            holdRespinGrid = document.getElementById('hold-respin-grid');
+            holdRespinCounter = document.getElementById('hold-respin-counter');
+
 
             loadGameState();
             setupVolumeControls();
             setupEventListeners();
             spinButton.addEventListener('click', () => spin());
             startIdleIncome();
+            updateGrandJackpotDisplay();
             showMessage("Click Spin to Start!", "text-yellow-300", 3000);
             
             setInterval(() => {
