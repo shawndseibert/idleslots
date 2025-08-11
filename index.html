@@ -11,15 +11,19 @@
         body {
             font-family: 'Poppins', sans-serif;
             touch-action: manipulation;
-            /* overflow: hidden; */ /* REMOVED: This allows scrolling on small screens */
+            transition: background 0.5s ease-out;
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE10+/Edge */
+            user-select: none; /* Standard */
         }
-        #background-canvas {
+        #background-transition-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1; /* Behind everything but body */
+            inset: 0;
+            z-index: -2;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease-in-out;
         }
         .slot {
             width: 100px;
@@ -37,14 +41,13 @@
             box-shadow: inset 0 6px 10px rgba(0,0,0,0.2);
             transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
         }
-        /* New pseudo-element for handling the glow effect */
         .slot::before {
             content: "";
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            border-radius: 12px; /* Match parent */
-            z-index: -1; /* Place behind content */
-            box-shadow: var(--glow-shadow, none); /* Use custom property for glow */
+            border-radius: 12px;
+            z-index: -1;
+            box-shadow: var(--glow-shadow, none);
             transition: box-shadow 0.3s ease-in-out;
         }
         .slot-inner {
@@ -52,10 +55,8 @@
             top: 0;
             transition: top 0.1s ease-in-out;
         }
-        .spin-button, .stats-panel, .slot, .store-button, .frenzy-button, .prestige-button, .settings-button, .gamble-button {
-            transition: all 0.3s ease;
-            position: relative;
-            z-index: 10;
+        button, .stats-panel, .slot, #game-container {
+            transition: all 0.2s ease-in-out;
         }
         .spin-button:active, .store-button:active, .frenzy-button:active, .prestige-button:active, .settings-button:active, .gamble-button:active {
             transform: translateY(2px);
@@ -63,18 +64,6 @@
         }
         .message-box {
             transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
-        }
-        
-        /* --- Badge System --- */
-        #badge-display-container {
-            background-color: #1F2937; /* gray-800 */
-            border-radius: 0.5rem;
-            padding: 0.5rem;
-            margin-top: -1rem;
-            margin-bottom: 1.5rem;
-            min-height: 52px;
-            position: relative; /* Ensure proper stacking context */
-            z-index: 20; /* Position badges above slot glow */
         }
         .badge {
             font-size: 2rem;
@@ -84,7 +73,7 @@
         .badge .tooltip {
             visibility: hidden;
             width: 160px;
-            background-color: #111827; /* gray-900 */
+            background-color: #111827;
             color: #fff;
             text-align: center;
             border-radius: 6px;
@@ -126,8 +115,17 @@
             font-weight: bold;
             border: 2px solid #1F2937;
         }
+        @keyframes text-flash { 50% { color: #ffffff; text-shadow: 0 0 10px #ffffff; } }
+        .animate-flash { animation: text-flash 0.3s ease-in-out; }
+        
+        @keyframes pop-in {
+            from { opacity: 0; transform: translateY(10px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-pop-in {
+            animation: pop-in 0.5s ease-out forwards;
+        }
 
-        /* --- Visual Flair Animations --- */
         @keyframes win-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         .win-pulse { animation: win-pulse 0.5s ease-in-out; }
 
@@ -136,8 +134,6 @@
         }
         .jackpot-glow { animation: jackpot-glow 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
         
-        .jackpot-border-glow { animation: jackpot-glow 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
-
         @keyframes screen-shake {
             0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(0, 0) rotate(0deg); }
         }
@@ -155,25 +151,20 @@
         }
         .super-symbol { animation: sparkle 1.5s infinite; }
         
-        /* --- Frenzy Animations --- */
         @keyframes frenzy-glow {
             0%, 100% { box-shadow: 0 0 5px 2px #f87171, 0 0 10px 4px #ef4444, 0 0 15px 6px #dc2626; }
             50% { box-shadow: 0 0 10px 4px #f87171, 0 0 15px 6px #ef4444, 0 0 20px 8px #dc2626; }
         }
         .frenzy-glow { animation: frenzy-glow 1s ease-in-out infinite alternate; }
 
-        /* --- Gamble Animations --- */
         @keyframes gamble-win-text {
-            0% { transform: scale(0.8) translateY(20px); opacity: 0; }
-            10% { transform: scale(1.1); opacity: 1; }
-            90% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1.5) translateY(-50px); opacity: 0; }
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+            10% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+            90% { transform: translate(-50%, -150%) scale(1.1); opacity: 1; }
+            100% { transform: translate(-50%, -250%) scale(1.5); opacity: 0; }
         }
-        .gamble-win-text {
-            animation: gamble-win-text 2s ease-out;
-        }
+        .gamble-win-text { animation: gamble-win-text 2s cubic-bezier(0.17, 0.84, 0.44, 1); }
 
-        /* --- Floating Text Animation --- */
         @keyframes float-up {
             0% { transform: translateY(0); opacity: 1; }
             100% { transform: translateY(-80px); opacity: 0; }
@@ -185,99 +176,93 @@
             animation: float-up 1.5s ease-out forwards;
             font-size: 1.5rem;
             font-weight: bold;
-            color: #34d399; /* emerald-400 */
+            color: #34d399;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
         }
 
-        /* --- Falling Icons --- */
-        .fall-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden;
-        }
-        .falling-money-container { 
-            z-index: 2; /* Behind main UI */
-        }
-        .falling-powerup-container {
-            z-index: 101; /* In front of main UI */
-        }
+        .fall-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
+        .falling-money-container { z-index: 2; }
+        .falling-powerup-container { z-index: 101; }
         @keyframes fall { 0% { top: -10%; opacity: 1; } 100% { top: 110%; opacity: 0.5; } }
         .coin {
             position: absolute; top: -10%; font-size: 2rem; animation: fall 3s linear; text-shadow: 1px 1px 3px rgba(0,0,0,0.5); pointer-events: auto;
         }
 
-        /* --- Confetti --- */
-        .confetti-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 1001;
-        }
+        .confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 1001; }
         @keyframes confetti-fall {
             0% { transform: translateY(0) rotateZ(0deg); opacity: 1; }
             100% { transform: translateY(100vh) rotateZ(720deg); opacity: 0; }
         }
-        .confetti {
-            position: absolute;
-            top: -10px;
-            font-size: 1.5rem;
-            animation: confetti-fall 3s linear forwards;
-            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3));
-        }
+        .confetti { position: absolute; top: -10px; font-size: 1.5rem; animation: confetti-fall 3s linear forwards; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3)); }
 
-        /* --- Menus & Modals --- */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 998; backdrop-filter: blur(5px);
-        }
-        .menu {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background-color: rgba(17, 24, 39, 0.95); border: 2px solid #FBBF24; border-radius: 12px;
-            padding: 24px; z-index: 1000; width: 90%; max-width: 450px;
-        }
-        .power-up-item {
-            background-color: #374151; border-radius: 8px; padding: 12px;
-        }
-        .scroll-container {
-            max-height: 60vh;
-            overflow-y: auto;
-            padding-right: 1rem; /* Add padding for scrollbar */
-        }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); z-index: 998; backdrop-filter: blur(5px); }
+        .menu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(17, 24, 39, 0.95); border: 2px solid #FBBF24; border-radius: 12px; padding: 24px; z-index: 1000; width: 90%; max-width: 450px; }
+        .power-up-item { background-color: #374151; border-radius: 8px; padding: 12px; }
+        .scroll-container { max-height: 60vh; overflow-y: auto; padding-right: 1rem; }
         
-        /* --- Themes --- */
-        .theme-inferno {
-            --main-border: #ef4444; /* red-500 */
-            --title-color: #f87171; /* red-400 */
-        }
-        #game-container {
-            border-color: var(--main-border, #FBBF24);
-        }
-        #game-container h1 {
-            color: var(--title-color, #FBBF24);
-        }
+        .theme-inferno { --main-border: #ef4444; --title-color: #f87171; }
+        #game-container { border-color: var(--main-border, #FBBF24); }
+        #game-container h1 { color: var(--title-color, #FBBF24); }
 
-        /* --- UX Improvements --- */
-        .coin, button {
-            -webkit-user-select: none; /* Safari */
-            -moz-user-select: none; /* Firefox */
-            -ms-user-select: none; /* IE10+/Edge */
-            user-select: none; /* Standard */
+        @keyframes glow-pulse-anim {
+            0%, 100% { box-shadow: 0 0 15px 5px var(--glow-color, transparent); opacity: 0.7; }
+            50% { box-shadow: 0 0 25px 10px var(--glow-color, transparent); opacity: 1; }
+        }
+        @keyframes glow-wild-anim {
+            0% { box-shadow: 0 0 25px 10px var(--glow-color, transparent); transform: scale(1); }
+            50% { box-shadow: 0 0 40px 15px var(--glow-color, transparent); transform: scale(1.02); }
+            100% { box-shadow: 0 0 25px 10px var(--glow-color, transparent); transform: scale(1); }
+        }
+        #game-container::before {
+            content: "";
+            position: absolute;
+            inset: -5px;
+            z-index: -1;
+            border-radius: 1.25rem;
+            transition: box-shadow 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            box-shadow: 0 0 15px 5px transparent;
+            opacity: 0;
+        }
+        #game-container.is-glowing::before { opacity: 1; }
+        #game-container.glow-pulse::before { animation: glow-pulse-anim 4s ease-in-out infinite; }
+        #game-container.glow-wild::before { animation: glow-wild-anim 2s ease-in-out infinite; }
+
+        @keyframes super-crazy-bg-anim {
+            0% { background-position: 0% 50%, 0 0, 0 0; }
+            50% { background-position: 0% 50%, 100% 100%, 100% 50%; }
+            100% { background-position: 0% 50%, 0 0, 0 0; }
         }
     </style>
 </head>
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
-    <canvas id="background-canvas"></canvas>
-    <div id="falling-money-container" class="fall-container falling-money-container"></div>
-    <div id="falling-powerup-container" class="fall-container falling-powerup-container"></div>
+<body class="text-white flex flex-col items-center justify-center min-h-screen p-4">
+    <div id="background-transition-overlay"></div>
+    <div id="falling-money-container" class="fall-container"></div>
+    <div id="falling-powerup-container" class="fall-container"></div>
     <div id="confetti-container" class="confetti-container"></div>
 
-    <div id="game-container" class="bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md border-2 transition-all duration-500 relative" style="z-index: 100;">
+    <div id="badge-display-container" class="w-full max-w-md mx-auto mb-4 flex flex-wrap justify-center items-center gap-2 min-h-[52px]"></div>
+
+    <div id="game-container" class="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-2xl w-full max-w-md border-2 relative" style="z-index: 100;">
         
         <div class="flex justify-center items-center mb-2 relative">
             <h1 id="game-title" class="text-4xl font-bold text-center">Idle Slots</h1>
-            <button id="infoButton" class="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-300 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </button>
+            <div class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+                <button id="settingsButton" class="text-gray-400 hover:text-yellow-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </button>
+                <button id="infoButton" class="text-gray-400 hover:text-yellow-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </button>
+            </div>
         </div>
-        <p id="prestige-display" class="text-center text-cyan-400 mb-4 h-5"></p>
+        <p id="prestige-display" class="text-center text-cyan-400 mb-2 h-5"></p>
 
-        <div id="stats-panel" class="stats-panel bg-gray-900 p-4 rounded-lg text-center mb-6 flex justify-around">
+        <div id="stats-panel" class="stats-panel bg-gray-900 p-4 rounded-lg text-center mb-4 flex justify-around">
             <div class="w-1/2">
                 <p class="text-lg text-gray-400">Your Balance</p>
                 <p id="balance" class="text-4xl font-bold text-green-400">$100</p>
@@ -288,43 +273,37 @@
                 <p id="win-counter" class="text-4xl font-bold text-yellow-400">0</p>
             </div>
         </div>
-        
-        <div id="badge-display-container" class="flex flex-wrap justify-center items-center gap-2"></div>
 
-        <div class="flex justify-center space-x-4 mb-6">
+        <div class="flex justify-center space-x-4 mb-4">
             <div class="slot"><div id="slot1" class="slot-inner"><span>🍒</span></div></div>
             <div class="slot"><div id="slot2" class="slot-inner"><span>🍋</span></div></div>
             <div class="slot"><div id="slot3" class="slot-inner"><span>🍊</span></div></div>
         </div>
 
-        <div id="message" class="message-box text-center text-xl font-semibold h-8 mb-4"></div>
-
-        <div id="primary-buttons" class="flex space-x-4">
-            <button id="spinButton" class="spin-button w-1/2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-4 px-4 rounded-lg text-xl sm:text-2xl shadow-lg focus:outline-none focus:ring-4 focus:ring-yellow-300 disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center">
-                Spin ($5)
+        <div id="message" class="message-box text-center text-xl font-semibold h-8 mb-3"></div>
+        
+        <div class="flex justify-end mb-2">
+            <button id="storeButton" class="store-button text-purple-400 hover:text-purple-300 transition-transform hover:scale-110">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
             </button>
-            <div class="flex w-1/2 space-x-4">
-                <button id="storeButton" class="store-button w-1/2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-4 rounded-lg text-base shadow-lg focus:outline-none focus:ring-4 focus:ring-purple-400 flex items-center justify-center whitespace-nowrap">
-                    Store
-                </button>
-                <button id="settingsButton" class="settings-button w-1/2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-4 rounded-lg text-base shadow-lg focus:outline-none focus:ring-4 focus:ring-gray-400 flex items-center justify-center whitespace-nowrap">
-                    Settings
-                </button>
-            </div>
         </div>
 
-        <div id="secondary-buttons" class="flex space-x-4 mt-4 h-14">
-            <button id="frenzyButton" class="frenzy-button w-1/2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg text-lg disabled:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50 flex justify-center items-center">
-                Frenzy
-                <span id="frenzy-coin-count" class="ml-2 font-semibold bg-red-800 rounded-full px-2 text-xs">0</span>
+        <div id="action-buttons" class="flex space-x-2 mb-3 opacity-0 animate-pop-in" style="animation-delay: 0.2s;">
+            <button id="frenzyButton" class="frenzy-button w-1/3 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-2 rounded-lg text-sm h-16 flex justify-center items-center disabled:bg-gray-600 disabled:opacity-50">
+                <span class="text-center">Frenzy <span id="frenzy-coin-count" class="block font-semibold text-xs">(0)</span></span>
             </button>
-            <button id="gambleButton" class="gamble-button w-1/2 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-lg text-lg disabled:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-50">
+            <button id="gambleButton" class="gamble-button w-1/3 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-2 rounded-lg text-sm h-16 disabled:bg-gray-600 disabled:opacity-50">
                 Gamble
             </button>
+            <button id="prestigeButton" class="prestige-button w-1/3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-2 rounded-lg text-sm h-16 disabled:opacity-50 text-center">
+                Prestige (100 Wins)
+            </button>
         </div>
-
-        <button id="prestigeButton" class="prestige-button w-full mt-4 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg text-lg sm:text-xl shadow-lg focus:outline-none focus:ring-4 focus:ring-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-center">
-            Prestige (100 Wins)
+        
+        <button id="spinButton" class="spin-button w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-5 px-4 rounded-lg text-3xl shadow-lg focus:outline-none focus:ring-4 focus:ring-yellow-300 disabled:bg-gray-600 flex items-center justify-center opacity-0 animate-pop-in" style="animation-delay: 0.1s;">
+            Spin ($5)
         </button>
         
     </div>
@@ -431,16 +410,14 @@
         const idleInterval = 1000;
         let prestigeLevel = 0;
         let wins = 0;
-        let totalWins = 0; // New variable for persistent total wins
+        let totalWins = 0;
         let secretTitleClicks = 0;
-
         let baseSymbols = [];
         let weightedSymbols = [];
         const anyTwoCherriesPayout = 10;
         const anyOneCherryPayout = 4;
         
         // --- DOM Element Variables ---
-        // Declared here, assigned in window.onload
         let gameContainer, gameTitle, statsPanel, balanceDisplay, winCounter, prestigeDisplay,
             slotElementsWithParents, slotElements, spinButton, storeButton, settingsButton,
             infoButton, prestigeButton, messageBox, devMenu, devMenuOverlay, storeMenu,
@@ -449,14 +426,11 @@
             confettiContainer, frenzyButton, frenzyCoinCount, gambleButton, gambleWagerButtons, 
             badgeDisplayContainer, masterVolumeSlider, sfxVolumeSlider, masterVolumeLabel, sfxVolumeLabel;
 
-
         // --- Audio Synths & Music ---
         let volumeSettings = { master: 1, sfx: 0.75 };
         let isAudioReady = false;
-
         const masterVolume = new Tone.Volume(0).toDestination();
         const sfxVolume = new Tone.Volume(0).connect(masterVolume);
-
         const membraneSynth = new Tone.MembraneSynth().connect(sfxVolume);
         const errorSynth = new Tone.FMSynth({ harmonicity: 8, modulationIndex: 2, envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.1 } }).connect(sfxVolume);
         const winSynth = new Tone.MetalSynth({ frequency: 250, envelope: { attack: 0.001, decay: 0.2, release: 0.1 }, harmonicity: 5.1, modulationIndex: 32, resonance: 3000, octaves: 1.5 }).connect(sfxVolume);
@@ -477,66 +451,45 @@
         let badges = {};
         const intensityColors = ['#4f46e5', '#db2777', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
         let saveTimeout;
+        let isTransitioningBackground = false;
+
+        // --- Helper Functions ---
+        function formatNumber(num) {
+            const value = Math.floor(num);
+            if (value < 10000) return value; // Changed from 1e3 (1000)
+            if (value >= 1e3 && value < 1e6) return +(value / 1e3).toFixed(1) + "k";
+            if (value >= 1e6 && value < 1e9) return +(value / 1e6).toFixed(1) + "M";
+            if (value >= 1e9 && value < 1e12) return +(value / 1e9).toFixed(1) + "B";
+            if (value >= 1e12) return +(value / 1e12).toFixed(1) + "T";
+        }
+
+        function seededRandom(seed) {
+            const x = Math.sin(seed + 1) * 10000;
+            return x - Math.floor(x);
+        }
         
-        // --- Badges & Symbols Initializers ---
+        // --- Game Setup ---
         function initializeSymbols() {
-             baseSymbols = [
-                { emoji: '💎', payout3: 500, payout2: 50 }, { emoji: '🍀', payout3: 200, payout2: 30 },
-                { emoji: '🔔', payout3: 100,  payout2: 20 }, { emoji: '🍇', payout3: 40,  payout2: 10 },
-                { emoji: '🍊', payout3: 30,  payout2: 6 }, { emoji: '🍋', payout3: 20,  payout2: 4 },
-                { emoji: '🍒', payout3: 15,    payout2: 2 }
-            ];
+             baseSymbols = [ { emoji: '💎', payout3: 500, payout2: 50 }, { emoji: '🍀', payout3: 200, payout2: 30 }, { emoji: '🔔', payout3: 100,  payout2: 20 }, { emoji: '🍇', payout3: 40,  payout2: 10 }, { emoji: '🍊', payout3: 30,  payout2: 6 }, { emoji: '🍋', payout3: 20,  payout2: 4 }, { emoji: '🍒', payout3: 15,    payout2: 2 } ];
             weightedSymbols = [...baseSymbols];
         }
 
         function initializeBadges() {
-             badges = {
-                winCounter: { name: 'Total Wins', unlocked: true, dynamic: true, icon: '🏆', description: 'Your total wins across all prestiges.', order: 1 },
-                win10: { name: 'Getting Started', unlocked: false, icon: '🥉', description: 'Reach 10 total wins.', order: 2 },
-                win100: { name: 'Slot Pro', unlocked: false, icon: '🥈', description: 'Reach 100 total wins.', order: 3 },
-                win500: { name: 'Slot Hotshot', unlocked: false, icon: '🥇', description: 'Reach 500 total wins.', order: 4 },
-                win1000: { name: 'Slot Master', unlocked: false, icon: '🏅', description: 'Reach 1,000 total wins.', order: 5 },
-                bal10k: { name: 'High Roller', unlocked: false, icon: '💰', description: 'Reach a balance of $10,000.', order: 6 },
-                bal100k: { name: 'Big Spender', unlocked: false, icon: '💵', description: 'Reach a balance of $100,000.', order: 7 },
-                bal1M: { name: 'Millionaire', unlocked: false, icon: '🤑', description: 'Reach a balance of $1,000,000.', order: 8 },
-                bal1B: { name: 'Billionaire', unlocked: false, icon: '💎', description: 'Reach a balance of $1,000,000,000.', order: 9 },
-                prestige1: { name: 'New Beginning', unlocked: false, icon: '🌀', description: 'Prestige for the first time.', order: 10 },
-                prestige5: { name: 'Loop Master', unlocked: false, icon: '🌌', description: 'Reach Prestige Level 5.', order: 11 },
-                frenzy10: { name: 'Fever Pitch', unlocked: false, icon: '🔥', description: 'Activate Frenzy Mode 10 times.', order: 12, value: 0 },
-                allIn: { name: 'All In!', unlocked: false, icon: '🎲', description: 'Win a 100% wager gamble.', order: 13 },
-                collector: { name: 'Collector', unlocked: false, icon: '🛍️', description: 'Buy one of every Power-Up.', order: 14 },
-                chain: { name: 'Chain Reaction', unlocked: false, icon: '⛓️', description: 'Achieve a Jackpot Chain.', order: 15 },
-                secretNudge: { name: 'Just a Nudge', unlocked: false, icon: '❓', description: 'Sometimes you get a little help.', order: 100, secret: true },
-                secretClicker: { name: 'Bored?', unlocked: false, icon: '❓', description: 'You clicked the title 10 times.', order: 101, secret: true },
-            };
+             badges = { winCounter: { name: 'Total Wins', unlocked: true, dynamic: true, icon: '🏆', description: 'Your total wins across all prestiges.', order: 1 }, win10: { name: 'Getting Started', unlocked: false, icon: '🥉', description: 'Reach 10 total wins.', order: 2 }, win100: { name: 'Slot Pro', unlocked: false, icon: '🥈', description: 'Reach 100 total wins.', order: 3 }, win500: { name: 'Slot Hotshot', unlocked: false, icon: '🥇', description: 'Reach 500 total wins.', order: 4 }, win1000: { name: 'Slot Master', unlocked: false, icon: '🏅', description: 'Reach 1,000 total wins.', order: 5 }, bal10k: { name: 'High Roller', unlocked: false, icon: '💰', description: 'Reach a balance of $10,000.', order: 6 }, bal100k: { name: 'Big Spender', unlocked: false, icon: '💵', description: 'Reach a balance of $100,000.', order: 7 }, bal1M: { name: 'Millionaire', unlocked: false, icon: '🤑', description: 'Reach a balance of $1,000,000.', order: 8 }, bal1B: { name: 'Billionaire', unlocked: false, icon: '💎', description: 'Reach a balance of $1,000,000,000.', order: 9 }, prestige1: { name: 'New Beginning', unlocked: false, icon: '🌀', description: 'Prestige for the first time.', order: 10 }, prestige5: { name: 'Loop Master', unlocked: false, icon: '🌌', description: 'Reach Prestige Level 5.', order: 11 }, frenzy10: { name: 'Fever Pitch', unlocked: false, icon: '🔥', description: 'Activate Frenzy Mode 10 times.', order: 12, value: 0 }, allIn: { name: 'All In!', unlocked: false, icon: '🎲', description: 'Win a 100% wager gamble.', order: 13 }, collector: { name: 'Collector', unlocked: false, icon: '🛍️', description: 'Buy one of every Power-Up.', order: 14 }, chain: { name: 'Chain Reaction', unlocked: false, icon: '⛓️', description: 'Achieve a Jackpot Chain.', order: 15 }, secretNudge: { name: 'Just a Nudge', unlocked: false, icon: '❓', description: 'Sometimes you get a little help.', order: 100, secret: true }, secretClicker: { name: 'Bored?', unlocked: false, icon: '❓', description: 'You clicked the title 10 times.', order: 101, secret: true }, };
         }
 
-        // --- Game State & Progress ---
         function resetProgress() {
             initializeBadges();
             initializeSymbols();
-            powerUps = {
-                autoSpinner: { name: 'Auto Spinner', description: 'Spins faster with each level.', cost: 200, level: 0 },
-                incomeBoost: { name: 'Income Boost', description: 'Increases idle income by $1/s.', cost: 250, level: 0 },
-                winMultiplier: { name: 'Win Multiplier', description: 'Increases all wins by 10%.', cost: 1000, level: 0 },
-                nudge: { name: 'Lucky Nudge', description: 'Chance to turn a near-miss into a jackpot.', cost: 750, level: 0 },
-                symbolMagnet: { name: 'Diamond Magnet', description: 'Increases chance of landing 💎.', cost: 1500, level: 0 },
-                jackpotChain: { name: 'Jackpot Chain', description: 'Jackpots can re-spin with a 2x multiplier.', cost: 5000, level: 0 },
-                frenzyToken: { name: 'Frenzy Token', description: '15s of free, fast, 2x-payout spins.', cost: 2000, count: 0 }
-            };
-            milestones = {
-                250: { unlocked: false, description: 'Unlock the 👑 symbol!' },
-                500: { unlocked: false, description: 'Win Multiplier is now 5% more effective!' },
-                1000: { unlocked: false, description: 'Unlock the Inferno theme!' }
-            };
+            powerUps = { autoSpinner: { name: 'Auto Spinner', description: 'Spins faster with each level.', cost: 200, level: 0 }, incomeBoost: { name: 'Income Boost', description: 'Increases idle income by $1/s.', cost: 250, level: 0 }, winMultiplier: { name: 'Win Multiplier', description: 'Increases all wins by 10%.', cost: 1000, level: 0 }, nudge: { name: 'Lucky Nudge', description: 'Chance to turn a near-miss into a jackpot.', cost: 750, level: 0 }, symbolMagnet: { name: 'Diamond Magnet', description: 'Increases chance of landing 💎.', cost: 1500, level: 0 }, jackpotChain: { name: 'Jackpot Chain', description: 'Jackpots can re-spin with a 2x multiplier.', cost: 5000, level: 0 }, frenzyToken: { name: 'Frenzy Token', description: '15s of free, fast, 2x-payout spins.', cost: 2000, count: 0 } };
+            milestones = { 250: { unlocked: false, description: 'Unlock the 👑 symbol!' }, 500: { unlocked: false, description: 'Win Multiplier is now 5% more effective!' }, 1000: { unlocked: false, description: 'Unlock the Inferno theme!' } };
         }
         
+        // --- Save & Load ---
         function saveGameState() {
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => {
-                const gameState = {
-                    balance, wins, totalWins, idleIncome, prestigeLevel, powerUps, milestones, badges, secretTitleClicks, volumeSettings
-                };
+                const gameState = { balance, wins, totalWins, idleIncome, prestigeLevel, powerUps, milestones, badges, secretTitleClicks, volumeSettings };
                 localStorage.setItem('idleSlotMachineSave', JSON.stringify(gameState));
             }, 500);
         }
@@ -550,39 +503,16 @@
                     const gameState = JSON.parse(savedData);
                     balance = gameState.balance ?? 100;
                     wins = gameState.wins ?? 0;
-                    // Load totalWins, fallback to session wins for older saves
                     totalWins = gameState.totalWins ?? gameState.wins ?? 0;
                     idleIncome = gameState.idleIncome ?? 1;
                     prestigeLevel = gameState.prestigeLevel ?? 0;
                     secretTitleClicks = gameState.secretTitleClicks ?? 0;
-                    
                     if (gameState.volumeSettings) volumeSettings = { ...volumeSettings, ...gameState.volumeSettings };
-                    
-                    if (gameState.badges) {
-                        Object.keys(gameState.badges).forEach(key => {
-                            if (badges[key]) {
-                               badges[key] = { ...badges[key], ...gameState.badges[key] };
-                            }
-                        });
-                    }
-                    if (gameState.powerUps) {
-                        Object.keys(gameState.powerUps).forEach(key => {
-                            if (powerUps[key]) {
-                               powerUps[key] = { ...powerUps[key], ...gameState.powerUps[key] };
-                            }
-                        });
-                    }
-                     if (gameState.milestones) {
-                        Object.keys(gameState.milestones).forEach(key => {
-                            if (milestones[key]) {
-                                milestones[key] = { ...milestones[key], ...gameState.milestones[key] };
-                            }
-                        });
-                    }
+                    if (gameState.badges) { Object.keys(gameState.badges).forEach(key => { if (badges[key]) { badges[key] = { ...badges[key], ...gameState.badges[key] }; } }); }
+                    if (gameState.powerUps) { Object.keys(gameState.powerUps).forEach(key => { if (powerUps[key]) { powerUps[key] = { ...powerUps[key], ...gameState.powerUps[key] }; } }); }
+                    if (gameState.milestones) { Object.keys(gameState.milestones).forEach(key => { if (milestones[key]) { milestones[key] = { ...milestones[key], ...gameState.milestones[key] }; } }); }
                 
-                    if (milestones[250]?.unlocked && !baseSymbols.some(s => s.emoji === '👑')) {
-                        baseSymbols.unshift({ emoji: '👑', payout3: 1000, payout2: 100 });
-                    }
+                    if (milestones[250]?.unlocked && !baseSymbols.some(s => s.emoji === '👑')) { baseSymbols.unshift({ emoji: '👑', payout3: 1000, payout2: 100 }); }
                     weightedSymbols = [...baseSymbols];
 
                     if (powerUps.autoSpinner.level > 0) {
@@ -592,46 +522,116 @@
                     }
                     if (powerUps.symbolMagnet.level > 0) {
                         const diamond = baseSymbols.find(s => s.emoji === '💎');
-                        if (diamond) {
-                            for (let i = 0; i < powerUps.symbolMagnet.level * 2; i++) weightedSymbols.push(diamond);
-                        }
+                        if (diamond) { for (let i = 0; i < powerUps.symbolMagnet.level * 2; i++) weightedSymbols.push(diamond); }
                     }
-                    if (milestones[1000]?.unlocked) {
-                        gameContainer.classList.add('theme-inferno');
-                    }
+                    if (milestones[1000]?.unlocked) { gameContainer.classList.add('theme-inferno'); }
                 } catch (error) {
                     console.error("Failed to load saved data. Starting a new game.", error);
-                    fullReset(false); // Reset to a clean state if save is corrupt
+                    fullReset(false);
                 }
             }
             
-            prestigeDisplay.textContent = prestigeLevel > 0 ? `Prestige Lvl ${prestigeLevel} (+${prestigeLevel * 25}% Earnings)` : '';
+            updateBackground(true);
             applyVolumeSettings();
             updateBalanceDisplay();
             updateWinCounter();
+            updatePrestigeButton();
             updateIntensity();
             renderInfo();
             renderBadges();
         }
 
-        // --- Core Game Logic ---
+        // --- Core UI & Game Logic ---
         async function initializeAudio() {
             if (isAudioReady) return;
             await Tone.start();
             isAudioReady = true;
         }
+
         function updateBalanceDisplay() {
-            balanceDisplay.textContent = `$${Math.floor(balance)}`;
+            balanceDisplay.textContent = `$${formatNumber(balance)}`;
+            balanceDisplay.classList.add('animate-flash');
+            setTimeout(() => balanceDisplay.classList.remove('animate-flash'), 300);
             if (!isSpinning) { spinButton.disabled = balance < spinCost; }
             gambleButton.disabled = balance <= 0;
-            updateGambleButtons();
             checkBadgeUnlocks();
         }
         function updateWinCounter() { 
             winCounter.textContent = wins;
+            winCounter.classList.add('animate-flash');
+            setTimeout(() => winCounter.classList.remove('animate-flash'), 300);
             prestigeButton.disabled = wins < 100;
             checkMilestones();
             checkBadgeUnlocks();
+        }
+
+        function updatePrestigeButton() {
+            if (prestigeLevel > 0) {
+                prestigeButton.innerHTML = `Prestige <span class="block text-xs opacity-80">Lvl ${prestigeLevel} (+${prestigeLevel * 25}%)</span>`;
+            } else {
+                prestigeButton.textContent = 'Prestige (100 Wins)';
+            }
+        }
+
+        function updateBackground(isInstant = false) {
+            if (isTransitioningBackground && !isInstant) return;
+
+            const calculateGradient = () => {
+                const intensityLevel = Math.floor(wins / 10);
+
+                if (wins >= 1000) {
+                    return `radial-gradient(ellipse at 70% 80%, hsla(300, 100%, 50%, 0.5), transparent), radial-gradient(ellipse at 30% 20%, hsla(180, 100%, 50%, 0.5), transparent), linear-gradient(135deg, #ff0000, #ffff00, #00ff00, #0000ff, #ff00ff)`;
+                }
+                if (intensityLevel < 2) {
+                    const calmAngle = 160, darkGray = 'hsl(0, 0%, 10%)', lightGray = 'hsl(0, 0%, 15%)';
+                    if (intensityLevel === 1) { 
+                        return `linear-gradient(${calmAngle}deg, ${darkGray}, ${intensityColors[0]}, ${lightGray})`;
+                    } else {
+                        return `linear-gradient(${calmAngle}deg, ${darkGray}, ${lightGray})`;
+                    }
+                }
+                const progress = (wins - 20) / 980;
+                const baseHue = Math.floor(seededRandom(prestigeLevel) * 360);
+                const angle = Math.floor(180 + progress * 180);
+                const numColors = 2 + Math.floor(progress * 5);
+                const saturation = 50 + progress * 50;
+                const lightness = 40 - progress * 25;
+                const colors = [];
+                for (let i = 0; i < numColors; i++) {
+                    const hue = (baseHue + (i * (360 / numColors)) + (wins * 0.5)) % 360;
+                    colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+                }
+                const colorIndex = (intensityLevel - 1) % intensityColors.length;
+                colors.push(intensityColors[colorIndex]);
+                return `linear-gradient(${angle}deg, ${colors.join(', ')})`;
+            };
+            
+            const newGradient = calculateGradient();
+            const body = document.body;
+
+            if (isInstant || body.style.background === '') {
+                body.style.background = newGradient;
+                if(wins >= 1000) body.style.animation = 'super-crazy-bg-anim 4s linear infinite';
+                return;
+            }
+
+            if (newGradient === body.style.background) return;
+
+            isTransitioningBackground = true;
+            const overlay = document.getElementById('background-transition-overlay');
+            overlay.style.background = newGradient;
+            overlay.style.opacity = 1;
+
+            setTimeout(() => {
+                body.style.background = newGradient;
+                if (wins >= 1000) {
+                     body.style.animation = 'super-crazy-bg-anim 4s linear infinite';
+                } else {
+                    body.style.animation = '';
+                }
+                overlay.style.opacity = 0;
+                setTimeout(() => { isTransitioningBackground = false; }, 200);
+            }, 800);
         }
         
         function showMessage(text, colorClass = 'text-yellow-300', duration = 2000, isBadge = false) {
@@ -639,7 +639,7 @@
             const intensityLevel = Math.floor(wins / 10);
             const effectiveDuration = Math.max(800, duration - intensityLevel * 150);
             messageBox.textContent = text;
-            messageBox.className = `message-box text-center text-xl font-semibold h-8 mb-4 opacity-100 transform translate-y-0 ${colorClass}`;
+            messageBox.className = `message-box text-center text-xl font-semibold h-8 mb-3 opacity-100 transform translate-y-0 ${colorClass}`;
             setTimeout(() => { messageBox.style.opacity = '0'; messageBox.style.transform = 'translateY(-10px)'; }, effectiveDuration);
         }
 
@@ -649,12 +649,8 @@
             floatingText.className = 'floating-text';
             floatingText.style.left = `${x}px`;
             floatingText.style.top = `${y}px`;
-
             document.body.appendChild(floatingText);
-
-            floatingText.addEventListener('animationend', () => {
-                floatingText.remove();
-            }, { once: true });
+            floatingText.addEventListener('animationend', () => floatingText.remove());
         }
 
         function spin(options = {}) {
@@ -699,45 +695,55 @@
 
         function updateIntensity() {
             const intensityLevel = Math.floor(wins / 10);
+            
+            gameContainer.classList.remove('is-glowing', 'glow-pulse', 'glow-wild');
+            gameContainer.style.animationDuration = '';
+
             if (intensityLevel > 0) {
                 const colorIndex = (intensityLevel - 1) % intensityColors.length;
                 const color = intensityColors[colorIndex];
-                const glowSize = 15 + intensityLevel * 2;
-                const glowSpread = 5 + intensityLevel * 1;
-                const glowStyle = `0 0 ${glowSize}px ${glowSpread}px ${color}`;
-                gameContainer.style.boxShadow = glowStyle;
-                statsPanel.style.boxShadow = glowStyle;
-                spinButton.style.boxShadow = glowStyle;
+                
+                gameContainer.style.setProperty('--glow-color', color);
+                gameContainer.classList.add('is-glowing');
+
+                if (intensityLevel <= 10) {
+                    gameContainer.classList.add('glow-pulse');
+                } else {
+                    gameContainer.classList.add('glow-wild');
+                    const duration = Math.max(0.8, 2 - (intensityLevel - 10) * 0.1);
+                    gameContainer.style.animationDuration = `${duration}s`;
+                }
+                
+                const slotGlowStyle = `0 0 15px 5px ${color}`;
                 slotElementsWithParents.forEach(slot => {
-                    slot.style.setProperty('--glow-shadow', glowStyle);
+                    slot.style.setProperty('--glow-shadow', slotGlowStyle);
                 });
+
             } else {
-                [gameContainer, statsPanel, spinButton].forEach(el => el.style.boxShadow = '');
                 slotElementsWithParents.forEach(slot => {
                     slot.style.removeProperty('--glow-shadow');
                 });
             }
-            particleGlow.level = intensityLevel;
+
             clearInterval(coinInterval);
             if (intensityLevel > 0) {
                 const intervalTime = Math.max(20, 500 - intensityLevel * 40);
                 coinInterval = setInterval(createFallingCoin, intervalTime);
             }
-            createParticles(intensityLevel);
         }
 
         function createFallingCoin(xPos = null, yPos = null) {
-            // Limit the number of falling coins based on intensity
-            const maxCoins = Math.floor(particleGlow.level * 2.5);
+            const intensityLevel = Math.floor(wins / 10);
+            const maxCoins = Math.min(30, Math.floor(intensityLevel * 1.5));
             if (fallingMoneyContainer.childElementCount > maxCoins) {
                 return;
             }
-
             const coin = document.createElement('div');
             coin.classList.add('coin'); coin.textContent = '💰';
             coin.style.left = xPos !== null ? `${xPos}px` : `${Math.random() * 100}vw`;
             coin.style.top = yPos !== null ? `${yPos}px` : '-10%';
-            coin.style.animationDuration = `${2 + Math.random() * 2}s`; coin.style.fontSize = `${1.5 + Math.random()}rem`;
+            coin.style.animationDuration = `${2 + Math.random() * 2}s`;
+            coin.style.fontSize = `${1.5 + Math.random()}rem`;
             fallingMoneyContainer.appendChild(coin);
             setTimeout(() => { coin.remove(); }, 4000);
         }
@@ -761,7 +767,6 @@
                  if ((s1.emoji === s2.emoji && s1.emoji !== s3.emoji && Math.random() < nudgeChance) || (s2.emoji === s3.emoji && s2.emoji !== s1.emoji && Math.random() < nudgeChance)) {
                      hadNudge = true;
                 }
-
                 if (s1.emoji === s2.emoji && s1.emoji !== s3.emoji && hadNudge) {
                     resultSymbols[2] = s1;
                     slotElements[2].innerHTML = `<span class="${s1.isSuper ? 'super-symbol' : ''}">${s1.emoji}</span>`;
@@ -791,24 +796,25 @@
                 const milestoneBonus = milestones[500]?.unlocked ? 0.05 : 0;
                 let finalMultiplier = (1 + (powerUps.winMultiplier.level * (0.1 + milestoneBonus))) * (1 + (prestigeLevel * 0.25));
                 if (isFrenzyActive) finalMultiplier *= 2;
-                if (isChain) {
-                    finalMultiplier *= chainMultiplier;
-                    unlockBadge('chain');
-                }
+                if (isChain) { finalMultiplier *= chainMultiplier; unlockBadge('chain'); }
                 if (resultSymbols.some(s => s.isSuper)) finalMultiplier *= 10;
                 winnings *= finalMultiplier;
 
                 const oldIntensity = Math.floor(wins / 10);
                 wins++;
-                totalWins++; // Increment persistent win counter
+                totalWins++; 
                 updateWinCounter();
-                const newIntensity = Math.floor(wins / 10);
+                updateBackground();
 
-                if (newIntensity > oldIntensity) { if(isAudioReady) levelUpSynth.triggerAttackRelease("C5", "4n"); showMessage(`Intensity Up!`, 'text-pink-400', 2500); }
-                updateIntensity();
+                const newIntensity = Math.floor(wins / 10);
+                if (newIntensity > oldIntensity) { 
+                    if(isAudioReady) levelUpSynth.triggerAttackRelease("C5", "4n");
+                    showMessage(`Intensity Up!`, 'text-pink-400', 2500);
+                    updateIntensity(); 
+                }
                 
                 if (winType === 'jackpot') {
-                    let jackpotMessage = isChain ? `Chain x${chainMultiplier}! +$${Math.floor(winnings)}` : `Jackpot! +$${Math.floor(winnings)}`;
+                    let jackpotMessage = isChain ? `Chain x${chainMultiplier}! +$${formatNumber(winnings)}` : `Jackpot! +$${formatNumber(winnings)}`;
                     showMessage(jackpotMessage, 'text-green-400', 3000);
                     triggerWinAnimation(winningReels, 'jackpot-glow');
                     if(isAudioReady) {
@@ -818,7 +824,7 @@
                         setTimeout(() => spin({ isFree: true, isChain: true, chainMultiplier: chainMultiplier * 2 }), 1500);
                     }
                 } else {
-                    showMessage(`+ $${Math.floor(winnings)}`, 'text-blue-400');
+                    showMessage(`+ $${formatNumber(winnings)}`, 'text-blue-400');
                     triggerWinAnimation(winningReels, 'win-pulse');
                     if(isAudioReady) {
                         winSynth.harmonicity = 5.1 + newIntensity * 1.5; winSynth.frequency.value = 250 + newIntensity * 25;
@@ -839,14 +845,8 @@
                 const item = document.createElement('div');
                 item.className = 'power-up-item flex justify-between items-center';
                 let levelText = pu.level > 0 ? ` (Lvl ${pu.level})` : (pu.count > 0 ? ` (x${pu.count})` : '');
-                let costText = `$${Math.floor(pu.cost)}`;
-                item.innerHTML = `
-                    <div>
-                        <h4 class="text-lg font-bold text-purple-300">${pu.name}${levelText}</h4>
-                        <p class="text-sm text-gray-400">${pu.description}</p>
-                    </div>
-                    <button data-key="${key}" class="buy-button bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:bg-gray-500 disabled:cursor-not-allowed">${costText}</button>
-                `;
+                let costText = `$${formatNumber(pu.cost)}`;
+                item.innerHTML = `<div><h4 class="text-lg font-bold text-purple-300">${pu.name}${levelText}</h4><p class="text-sm text-gray-400">${pu.description}</p></div><button data-key="${key}" class="buy-button bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:bg-gray-500 disabled:cursor-not-allowed">${costText}</button>`;
                 powerUpsContainer.appendChild(item);
             }
             document.querySelectorAll('.buy-button').forEach(button => {
@@ -859,65 +859,19 @@
         function renderInfo() {
             const payoutContainer = document.getElementById('payout-info');
             payoutContainer.innerHTML = '';
-            
-            let tableHTML = `
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="border-b border-gray-700">
-                            <th class="py-2 text-lg text-center">Symbol</th>
-                            <th class="py-2 text-lg text-center">3 of a Kind</th>
-                            <th class="py-2 text-lg text-center">2 of a Kind</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
+            let tableHTML = `<table class="w-full text-left border-collapse"><thead><tr class="border-b border-gray-700"><th class="py-2 text-lg text-center">Symbol</th><th class="py-2 text-lg text-center">3 of a Kind</th><th class="py-2 text-lg text-center">2 of a Kind</th></tr></thead><tbody>`;
             [...baseSymbols].sort((a,b) => b.payout3 - a.payout3).forEach(symbol => {
-                 tableHTML += `
-                    <tr class="border-b border-gray-800">
-                        <td class="py-2 text-2xl text-center">${symbol.emoji}</td>
-                        <td class="py-2 text-lg text-center font-bold text-green-400">$${symbol.payout3}</td>
-                        <td class="py-2 text-lg text-center font-bold text-green-500">$${symbol.payout2}</td>
-                    </tr>
-                 `;
+                 tableHTML += `<tr class="border-b border-gray-800"><td class="py-2 text-2xl text-center">${symbol.emoji}</td><td class="py-2 text-lg text-center font-bold text-green-400">$${formatNumber(symbol.payout3)}</td><td class="py-2 text-lg text-center font-bold text-green-500">$${formatNumber(symbol.payout2)}</td></tr>`;
             });
-
             tableHTML += `</tbody></table>`;
-            
-            tableHTML += `
-                <div class="mt-4 pt-2 border-t border-gray-700 space-y-2">
-                    <div class="flex items-center justify-between text-md">
-                        <span class="text-gray-400">Any Two 🍒</span>
-                        <span class="font-bold text-green-500">$${anyTwoCherriesPayout}</span>
-                    </div>
-                    <div class="flex items-center justify-between text-md">
-                        <span class="text-gray-400">Any One 🍒</span>
-                        <span class="font-bold text-green-500">$${anyOneCherryPayout}</span>
-                    </div>
-                </div>
-            `;
+            tableHTML += `<div class="mt-4 pt-2 border-t border-gray-700 space-y-2"><div class="flex items-center justify-between text-md"><span class="text-gray-400">Any Two 🍒</span><span class="font-bold text-green-500">$${formatNumber(anyTwoCherriesPayout)}</span></div><div class="flex items-center justify-between text-md"><span class="text-gray-400">Any One 🍒</span><span class="font-bold text-green-500">$${formatNumber(anyOneCherryPayout)}</span></div></div>`;
             payoutContainer.innerHTML = tableHTML;
-            
             const badgeInfoContainer = document.getElementById('badge-info');
             badgeInfoContainer.innerHTML = '';
-            Object.values(badges)
-                .filter(b => !b.secret)
-                .sort((a, b) => a.order - b.order)
-                .forEach(badge => {
-                    badgeInfoContainer.innerHTML += `
-                        <div class="flex items-center">
-                            <span class="text-2xl mr-3">${badge.icon}</span>
-                            <div>
-                                <p class="font-semibold text-white">${badge.name}</p>
-                                <p class="text-sm text-gray-400">${badge.description}</p>
-                            </div>
-                        </div>
-                    `;
+            Object.values(badges).filter(b => !b.secret).sort((a, b) => a.order - b.order).forEach(badge => {
+                    badgeInfoContainer.innerHTML += `<div class="flex items-center"><span class="text-2xl mr-3">${badge.icon}</span><div><p class="font-semibold text-white">${badge.name}</p><p class="text-sm text-gray-400">${badge.description}</p></div></div>`;
             });
-             badgeInfoContainer.innerHTML += `
-                <div class="flex items-center"><span class="text-2xl mr-3">❓</span><p class="font-semibold text-white">???</p></div>
-                <div class="flex items-center"><span class="text-2xl mr-3">❓</span><p class="font-semibold text-white">???</p></div>
-             `;
+             badgeInfoContainer.innerHTML += `<div class="flex items-center"><span class="text-2xl mr-3">❓</span><p class="font-semibold text-white">???</p></div><div class="flex items-center"><span class="text-2xl mr-3">❓</span><p class="font-semibold text-white">???</p></div>`;
         }
 
         function buyPowerUp(key) {
@@ -937,9 +891,7 @@
                     } else if (key === 'symbolMagnet') {
                         weightedSymbols = [...baseSymbols];
                         const diamond = baseSymbols.find(s => s.emoji === '💎');
-                        if (diamond) {
-                           for (let i = 0; i < pu.level * 2; i++) weightedSymbols.push(diamond);
-                        }
+                        if (diamond) { for (let i = 0; i < pu.level * 2; i++) weightedSymbols.push(diamond); }
                     }
                 } else {
                     pu.count++;
@@ -953,36 +905,27 @@
 
         function updateFrenzyButton() {
             frenzyButton.disabled = powerUps.frenzyToken.count <= 0;
-            frenzyCoinCount.textContent = powerUps.frenzyToken.count;
+            const frenzyCountSpan = document.getElementById('frenzy-coin-count');
+            if(frenzyCountSpan) frenzyCountSpan.textContent = `(${powerUps.frenzyToken.count})`;
             if (!isFrenzyActive) {
-                frenzyButton.innerHTML = `Frenzy <span id="frenzy-coin-count" class="ml-2 font-semibold bg-red-800 rounded-full px-2 text-xs">${powerUps.frenzyToken.count}</span>`;
                 frenzyButton.classList.remove('frenzy-glow', 'screen-shake');
             }
         }
 
         function startFrenzy() {
             if (isFrenzyActive || powerUps.frenzyToken.count <= 0) return;
-            
             isFrenzyActive = true;
             if (badges.frenzy10 && !badges.frenzy10.unlocked) {
                 badges.frenzy10.value = (badges.frenzy10.value || 0) + 1;
             }
-
             powerUps.frenzyToken.count--;
             if(isAudioReady) {
                 frenzyPattern = new Tone.Pattern((time, note) => { frenzySynth.triggerAttackRelease(note, '16n', time); }, ["C4", "E4", "G4", "C5"], "up").start(0);
                 Tone.Transport.start();
             }
             const frenzySpinInterval = setInterval(() => spin({isFree: true}), 300);
-            const originalIntensity = Math.floor(wins / 10);
-            const frenzyIntensity = originalIntensity + 5;
-            particleGlow.level = frenzyIntensity;
-            createParticles(frenzyIntensity);
-
             frenzyButton.disabled = true;
-            frenzyButton.innerHTML = 'FRENZY!';
             frenzyButton.classList.add('frenzy-glow', 'screen-shake');
-
             setTimeout(() => {
                 isFrenzyActive = false;
                 clearInterval(frenzySpinInterval);
@@ -990,26 +933,20 @@
                     frenzyPattern.stop();
                     Tone.Transport.stop();
                 }
-                particleGlow.level = originalIntensity;
-                createParticles(originalIntensity);
                 updateFrenzyButton(); 
             }, 15000);
         }
         
         function fullReset(isPrestige = false) {
             const oldBadges = { ...badges };
-
             balance = 100;
             wins = 0;
             idleIncome = 1;
-            // Note: totalWins and secretTitleClicks are NOT reset here
-            
             if (!isPrestige) {
                  prestigeLevel = 0;
-                 totalWins = 0; // Only reset totalWins on a FULL game reset, not prestige
+                 totalWins = 0;
                  secretTitleClicks = 0;
             }
-            
             resetProgress();
              if (isPrestige) {
                 Object.keys(oldBadges).forEach(key => {
@@ -1017,13 +954,12 @@
                         badges[key].unlocked = true;
                     }
                 });
-            }
-
+             }
             clearInterval(autoSpinnerInterval);
             spinButton.textContent = 'Spin ($5)';
-            
             updateFrenzyButton();
-            prestigeDisplay.textContent = prestigeLevel > 0 ? `Prestige Lvl ${prestigeLevel} (+${prestigeLevel * 25}% Earnings)` : '';
+            updatePrestigeButton();
+            updateBackground(true);
             gameContainer.classList.remove('theme-inferno');
             updateBalanceDisplay();
             updateWinCounter();
@@ -1047,10 +983,7 @@
                     milestones[winCount].unlocked = true;
                     showMessage(`Milestone! ${milestones[winCount].description}`, 'text-yellow-300', 4000);
                     if (winCount == 250) {
-                        if (!baseSymbols.some(s => s.emoji === '👑')) {
-                            baseSymbols.unshift({ emoji: '👑', payout3: 1000, payout2: 100 });
-                            weightedSymbols = [...baseSymbols];
-                        }
+                        if (!baseSymbols.some(s => s.emoji === '👑')) { baseSymbols.unshift({ emoji: '👑', payout3: 1000, payout2: 100 }); weightedSymbols = [...baseSymbols]; }
                     } else if (winCount == 1000) {
                         gameContainer.classList.add('theme-inferno');
                     }
@@ -1063,12 +996,9 @@
         function spawnRandomPowerUp() {
             const powerUpElement = document.createElement('div');
             const icon = '⭐';
-
-            // Scale reward with session wins
             const baseReward = 10 + Math.random() * (spinCost * 10);
-            const scalingFactor = 1 + (wins / 50); // Reward increases by 100% every 50 wins
+            const scalingFactor = 1 + (wins / 50);
             const finalReward = Math.floor(baseReward * scalingFactor);
-
             powerUpElement.textContent = icon;
             powerUpElement.className = 'coin';
             powerUpElement.style.left = `${Math.random() * 95}vw`;
@@ -1076,17 +1006,14 @@
             powerUpElement.style.fontSize = '3rem';
             powerUpElement.style.cursor = 'pointer';
             powerUpElement.style.zIndex = '1001';
-
             powerUpElement.addEventListener('click', (event) => {
                 if(isAudioReady) purchaseSynth.triggerAttackRelease("A5", "16n");
                 balance += finalReward;
                 updateBalanceDisplay();
-                // Show the new floating text visual
-                showFloatingText(`+$${finalReward}`, event.clientX, event.clientY);
+                showFloatingText(`+$${formatNumber(finalReward)}`, event.clientX, event.clientY);
                 powerUpElement.remove();
                 saveGameState();
             }, { once: true });
-
             fallingPowerUpContainer.appendChild(powerUpElement);
             setTimeout(() => { powerUpElement.remove(); }, 5000);
         }
@@ -1102,26 +1029,19 @@
         }
 
         function checkBadgeUnlocks() {
-            // Use totalWins for lifetime achievements
             if (totalWins >= 10) unlockBadge('win10');
             if (totalWins >= 100) unlockBadge('win100');
             if (totalWins >= 500) unlockBadge('win500');
             if (totalWins >= 1000) unlockBadge('win1000');
             if (badges.frenzy10?.value >= 10) unlockBadge('frenzy10');
-            
-            // Use balance for currency achievements
             if (balance >= 10000) unlockBadge('bal10k');
             if (balance >= 100000) unlockBadge('bal100k');
             if (balance >= 1000000) unlockBadge('bal1M');
             if (balance >= 1000000000) unlockBadge('bal1B');
-            
-            // Use prestigeLevel for prestige achievements
             if (prestigeLevel >= 1) unlockBadge('prestige1');
             if (prestigeLevel >= 5) unlockBadge('prestige5');
-
             const allPowerupsBought = Object.values(powerUps).every(pu => pu.level > 0 || pu.count > 0);
             if (allPowerupsBought) unlockBadge('collector');
-            
             const winCounterBadge = document.getElementById('dynamic-badge-winCounter-value');
             if (winCounterBadge) winCounterBadge.textContent = totalWins;
         }
@@ -1129,23 +1049,19 @@
         function renderBadges() {
             badgeDisplayContainer.innerHTML = '';
             Object.entries(badges)
-                .filter(([key, badge]) => badge.unlocked)
+                .filter(([key, badge]) => {
+                    if (!badge.unlocked) return false;
+                    if (key === 'winCounter' && prestigeLevel === 0) return false;
+                    return true;
+                })
                 .sort(([k1, b1], [k2, b2]) => b1.order - b2.order)
                 .forEach(([key, badge]) => {
                     const badgeEl = document.createElement('div');
                     badgeEl.className = 'badge';
                     badgeEl.id = `badge-${key}`;
-                    
                     let tooltipText = `<div class='font-bold'>${badge.name}</div><div>${badge.description}</div>`;
-                    if (badge.secret && !badge.unlocked) {
-                        tooltipText = "???";
-                    }
-
-                    badgeEl.innerHTML = `
-                        ${badge.icon}
-                        ${badge.dynamic ? `<span id="dynamic-badge-${key}-value" class="dynamic-badge-value">${totalWins}</span>` : ''}
-                        <span class="tooltip">${tooltipText}</span>
-                    `;
+                    if (badge.secret && !badge.unlocked) tooltipText = "???";
+                    badgeEl.innerHTML = `${badge.icon}${badge.dynamic ? `<span id="dynamic-badge-${key}-value" class="dynamic-badge-value">${totalWins}</span>` : ''}<span class="tooltip">${tooltipText}</span>`;
                     badgeDisplayContainer.appendChild(badgeEl);
             });
         }
@@ -1159,8 +1075,7 @@
         
         const confettiEmojis = ['🎉', '🎊', '✨', '🌟', '🌈', '🥳', '🎈', '💖', '⭐'];
         function createConfetti() {
-            const numConfetti = 50;
-            for (let i = 0; i < numConfetti; i++) {
+            for (let i = 0; i < 50; i++) {
                 const confetti = document.createElement('div');
                 confetti.textContent = confettiEmojis[Math.floor(Math.random() * confettiEmojis.length)];
                 confetti.classList.add('confetti');
@@ -1174,37 +1089,53 @@
 
         function showGambleWinEffect(winnings, wagerPercentage) {
             const winText = document.createElement('div');
-            winText.textContent = `+$${Math.floor(winnings)}`;
-            winText.classList.add('gamble-win-text', 'text-green-400', 'text-6xl', 'font-bold', 'absolute', 'top-1/2', 'left-1/2', '-translate-x-1/2', '-translate-y-1/2', 'z-[1002]');
+            winText.textContent = `+$${formatNumber(winnings)}`;
+            winText.classList.add('gamble-win-text', 'text-green-400', 'text-5xl', 'font-bold', 'absolute', 'z-[1002]');
+            const gameContainerRect = gameContainer.getBoundingClientRect();
+            const gambleButtonRect = gambleButton.getBoundingClientRect();
+            const topPos = gambleButtonRect.top - gameContainerRect.top;
+            const leftPos = gambleButtonRect.left - gameContainerRect.left + (gambleButtonRect.width / 2);
+            winText.style.top = `${topPos}px`;
+            winText.style.left = `${leftPos}px`;
             gameContainer.appendChild(winText);
             
-            if (wagerPercentage >= 0.50) {
-                createConfetti();
-            }
+            gambleButton.textContent = `+${formatNumber(winnings)}`;
+            gambleButton.classList.remove('bg-yellow-600', 'hover:bg-yellow-700', 'bg-red-600', 'hover:bg-red-700');
+            gambleButton.classList.add('bg-green-500', 'hover:bg-green-600');
+            setTimeout(() => {
+                gambleButton.textContent = 'Gamble';
+                gambleButton.classList.remove('bg-green-500', 'hover:bg-green-600');
+                gambleButton.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+            }, 2500);
 
+            if (wagerPercentage >= 0.50) createConfetti();
             if(isAudioReady) {
-                const now = Tone.now(); jackpotSynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "8n", now);
+                const now = Tone.now();
+                jackpotSynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "8n", now);
             }
-
-            winText.addEventListener('animationend', () => {
-                winText.remove();
-            }, { once: true });
+            winText.addEventListener('animationend', () => winText.remove());
         }
         
         function initiateGamble(percentage) {
             const wager = balance * percentage;
             if (wager > balance) return;
             balance -= wager;
-            
             const win = Math.random() < 0.5;
-            
             if (win) {
                 balance += wager * 2;
-                showGambleWinEffect(wager, percentage);
+                showGambleWinEffect(wager * 2, percentage);
                 if (percentage === 1.00) unlockBadge('allIn');
             } else {
                 if(isAudioReady) { errorSynth.triggerAttackRelease("C2", "8n"); }
-                showMessage(`You lost! -$${Math.floor(wager)}`, 'text-red-400');
+                showMessage(`You lost! -$${formatNumber(wager)}`, 'text-red-400');
+                gambleButton.textContent = `-${formatNumber(wager)}`;
+                gambleButton.classList.remove('bg-yellow-600', 'hover:bg-yellow-700', 'bg-green-500', 'hover:bg-green-600');
+                gambleButton.classList.add('bg-red-600', 'hover:bg-red-700');
+                setTimeout(() => {
+                    gambleButton.textContent = 'Gamble';
+                    gambleButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+                    gambleButton.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+                }, 2500);
             }
             updateBalanceDisplay();
             saveGameState();
@@ -1214,10 +1145,8 @@
         function applyVolumeSettings() {
             masterVolume.volume.value = Tone.gainToDb(volumeSettings.master);
             sfxVolume.volume.value = Tone.gainToDb(volumeSettings.sfx);
-
             masterVolumeSlider.value = volumeSettings.master;
             sfxVolumeSlider.value = volumeSettings.sfx;
-
             masterVolumeLabel.textContent = `${Math.round(volumeSettings.master * 100)}%`;
             sfxVolumeLabel.textContent = `${Math.round(volumeSettings.sfx * 100)}%`;
         }
@@ -1230,7 +1159,6 @@
                 masterVolumeLabel.textContent = `${Math.round(gain * 100)}%`;
                 saveGameState();
             });
-
             sfxVolumeSlider.addEventListener('input', (e) => {
                 const gain = parseFloat(e.target.value);
                 volumeSettings.sfx = gain;
@@ -1247,24 +1175,10 @@
         }
 
         function setupEventListeners() {
-            gameTitle.addEventListener('click', () => {
-                secretTitleClicks++;
-                if (secretTitleClicks >= 10) {
-                    unlockBadge('secretClicker');
-                }
-                saveGameState();
-            });
+            gameTitle.addEventListener('click', () => { secretTitleClicks++; if (secretTitleClicks >= 10) unlockBadge('secretClicker'); saveGameState(); });
             frenzyButton.addEventListener('click', startFrenzy);
-            gambleButton.addEventListener('click', () => {
-                updateGambleButtons();
-                toggleMenu(gambleMenu, gambleMenuOverlay);
-            });
-            gambleWagerButtons.forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const percentage = parseFloat(e.target.dataset.wager);
-                    initiateGamble(percentage);
-                });
-            });
+            gambleButton.addEventListener('click', () => { updateGambleButtons(); toggleMenu(gambleMenu, gambleMenuOverlay); });
+            gambleWagerButtons.forEach(button => { button.addEventListener('click', (e) => initiateGamble(parseFloat(e.target.dataset.wager))); });
             document.getElementById('gamble-close').addEventListener('click', () => toggleMenu(gambleMenu, gambleMenuOverlay));
             storeButton.addEventListener('click', () => { renderStore(); toggleMenu(storeMenu, storeMenuOverlay); });
             document.getElementById('store-close').addEventListener('click', () => toggleMenu(storeMenu, storeMenuOverlay));
@@ -1273,25 +1187,12 @@
             document.getElementById('info-close').addEventListener('click', () => toggleMenu(infoMenu, infoMenuOverlay));
             infoMenuOverlay.addEventListener('click', () => toggleMenu(infoMenu, infoMenuOverlay));
             prestigeButton.addEventListener('click', prestige);
-            settingsButton.addEventListener('click', () => {
-                document.getElementById('settings-options').classList.remove('hidden');
-                document.getElementById('reset-confirmation').classList.add('hidden');
-                toggleMenu(settingsMenu, settingsMenuOverlay);
-            });
+            settingsButton.addEventListener('click', () => { document.getElementById('settings-options').classList.remove('hidden'); document.getElementById('reset-confirmation').classList.add('hidden'); toggleMenu(settingsMenu, settingsMenuOverlay); });
             document.getElementById('settings-close').addEventListener('click', () => toggleMenu(settingsMenu, settingsMenuOverlay));
             settingsMenuOverlay.addEventListener('click', () => toggleMenu(settingsMenu, settingsMenuOverlay));
-            document.getElementById('reset-progress-button').addEventListener('click', () => {
-                document.getElementById('settings-options').classList.add('hidden');
-                document.getElementById('reset-confirmation').classList.remove('hidden');
-            });
-            document.getElementById('cancel-reset-button').addEventListener('click', () => {
-                document.getElementById('settings-options').classList.remove('hidden');
-                document.getElementById('reset-confirmation').classList.add('hidden');
-            });
-            document.getElementById('confirm-reset-button').addEventListener('click', () => {
-                fullReset(false);
-                toggleMenu(settingsMenu, settingsMenuOverlay);
-            });
+            document.getElementById('reset-progress-button').addEventListener('click', () => { document.getElementById('settings-options').classList.add('hidden'); document.getElementById('reset-confirmation').classList.remove('hidden'); });
+            document.getElementById('cancel-reset-button').addEventListener('click', () => { document.getElementById('settings-options').classList.remove('hidden'); document.getElementById('reset-confirmation').classList.add('hidden'); });
+            document.getElementById('confirm-reset-button').addEventListener('click', () => { fullReset(false); toggleMenu(settingsMenu, settingsMenuOverlay); });
             
             let dKeyPresses = 0; let dKeyPressTimer;
             window.addEventListener('keydown', (e) => {
@@ -1302,59 +1203,18 @@
                 }
             });
             document.getElementById('dev-add-money').addEventListener('click', () => { balance += 1000; updateBalanceDisplay(); });
-            document.getElementById('dev-add-wins').addEventListener('click', () => { wins += 10; totalWins += 10; updateWinCounter(); updateIntensity(); });
+            document.getElementById('dev-add-wins').addEventListener('click', () => { wins += 10; totalWins += 10; updateWinCounter(); updateIntensity(); updateBackground(); });
             document.getElementById('dev-reset').addEventListener('click', () => fullReset(false));
             document.getElementById('dev-close').addEventListener('click', () => toggleMenu(devMenu, devMenuOverlay));
             devMenuOverlay.addEventListener('click', () => toggleMenu(devMenu, devMenuOverlay));
-            document.getElementById('dev-add-prestige').addEventListener('click', () => { prestigeLevel++; prestigeDisplay.textContent = `Prestige Lvl ${prestigeLevel} (+${prestigeLevel * 25}% Earnings)`; saveGameState(); });
+            document.getElementById('dev-add-prestige').addEventListener('click', () => { prestigeLevel++; fullReset(true); });
             document.getElementById('dev-add-frenzy').addEventListener('click', () => { powerUps.frenzyToken.count++; updateFrenzyButton(); saveGameState(); });
             document.getElementById('dev-unlock-milestones').addEventListener('click', () => { wins = 1000; updateWinCounter(); checkMilestones(); saveGameState(); });
             document.getElementById('dev-spawn-powerup').addEventListener('click', spawnRandomPowerUp);
         }
-
-        // --- Background Canvas Animation ---
-        const canvas = document.getElementById('background-canvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        let particleGlow = { level: 0 };
-        
-        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        function createParticles(intensity) {
-            const count = intensity * 25;
-            particles = [];
-            if (intensity === 0) return;
-            const colorIndex = (intensity - 1) % intensityColors.length;
-            const color = intensityColors[colorIndex];
-            for (let i = 0; i < count; i++) {
-                particles.push({
-                    x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-                    vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5,
-                    radius: Math.random() * 2 + 1, color: color
-                });
-            }
-        }
-        function animateParticles() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const intensity = particleGlow.level;
-            if (intensity > 0) {
-                const colorIndex = (intensity - 1) % intensityColors.length;
-                const color = intensityColors[colorIndex];
-                const blur = 5 + intensity * 2;
-                particles.forEach(p => {
-                    p.x += p.vx; p.y += p.vy;
-                    if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-                    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-                    ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                    ctx.fillStyle = p.color; ctx.shadowColor = color; ctx.shadowBlur = blur;
-                    ctx.fill();
-                });
-            }
-            requestAnimationFrame(animateParticles);
-        }
         
         // --- Initialization ---
         window.onload = () => {
-            // Assign all DOM elements once the page is fully loaded
             gameContainer = document.getElementById('game-container');
             gameTitle = document.getElementById('game-title');
             statsPanel = document.getElementById('stats-panel');
@@ -1393,14 +1253,11 @@
             masterVolumeLabel = document.getElementById('master-volume-label');
             sfxVolumeLabel = document.getElementById('sfx-volume-label');
 
-            // Now that elements are assigned, run the rest of the setup
             loadGameState();
             setupVolumeControls();
             setupEventListeners();
             spinButton.addEventListener('click', () => spin());
             startIdleIncome();
-            resizeCanvas(); 
-            animateParticles(); 
             showMessage("Click Spin to Start!", "text-yellow-300", 3000);
             
             setInterval(() => {
@@ -1411,7 +1268,6 @@
             }, 5000);
         };
         document.body.addEventListener('click', initializeAudio, { once: true });
-        window.onresize = resizeCanvas;
 
     </script>
 </body>
