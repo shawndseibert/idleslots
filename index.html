@@ -188,7 +188,11 @@
         <div class="space-y-2">
             <button id="dev-add-money" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">Add $1000</button>
             <button id="dev-add-wins" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">Add 10 Wins</button>
-            <button id="dev-reset" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">Reset Game</button>
+            <button id="dev-add-prestige" class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded">Add Prestige Lvl</button>
+            <button id="dev-add-frenzy" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">Add Frenzy Token</button>
+            <button id="dev-unlock-milestones" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded">Unlock Milestones</button>
+            <button id="dev-spawn-powerup" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded">Spawn Power-Up</button>
+            <button id="dev-reset" class="w-full bg-red-800 hover:bg-red-900 text-white font-bold py-2 px-4 rounded mt-4">Full Game Reset</button>
         </div>
         <button id="dev-close" class="mt-4 w-full text-gray-400 hover:text-white">Close</button>
     </div>
@@ -455,7 +459,7 @@
 
         function createFallingCoin() {
             const coin = document.createElement('div');
-            coin.classList.add('coin'); coin.textContent = '�'; coin.style.left = `${Math.random() * 100}vw`;
+            coin.classList.add('coin'); coin.textContent = '💰'; coin.style.left = `${Math.random() * 100}vw`;
             coin.style.animationDuration = `${2 + Math.random() * 2}s`; coin.style.fontSize = `${1.5 + Math.random()}rem`;
             coinContainer.appendChild(coin);
             setTimeout(() => { coin.remove(); }, 4000);
