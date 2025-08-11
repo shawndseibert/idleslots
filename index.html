@@ -176,13 +176,21 @@
         }
         .gamble-win-text { animation: gamble-win-text 3s cubic-bezier(0.17, 0.84, 0.44, 1); }
 
-        @keyframes gamble-loss-text {
-            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
-            10% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
-            90% { transform: translate(-50%, 50%) scale(1.1); opacity: 1; }
-            100% { transform: translate(-50%, 150%) scale(1.5); opacity: 0; }
+        @keyframes gamble-loss-explode {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+                filter: blur(0);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(8);
+                opacity: 0;
+                filter: blur(10px);
+            }
         }
-        .gamble-loss-text { animation: gamble-loss-text 3s cubic-bezier(0.17, 0.84, 0.44, 1); }
+        .gamble-loss-explode {
+            animation: gamble-loss-explode 1.5s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+        }
 
         @keyframes float-up {
             0% { transform: translateY(0); opacity: 1; }
@@ -1120,7 +1128,7 @@
             gameContainer.appendChild(winText);
             
             gambleButton.textContent = `+${formatNumber(winnings)}`;
-            gambleButton.classList.remove('bg-yellow-600', 'hover:bg-yellow-700', 'bg-red-600', 'hover:bg-red-700');
+            gambleButton.classList.remove('bg-yellow-600', 'hover:bg-yellow-700', 'bg-red-600', 'hover:bg-red-600');
             gambleButton.classList.add('bg-green-500', 'hover:bg-green-600');
             setTimeout(() => {
                 gambleButton.textContent = 'Gamble';
@@ -1139,10 +1147,10 @@
         function showGambleLossEffect(wager) {
             const lossText = document.createElement('div');
             lossText.textContent = `-${formatNumber(wager)}`;
-            lossText.classList.add('gamble-loss-text', 'text-red-400', 'text-5xl', 'font-bold', 'absolute', 'z-[1002]');
+            lossText.classList.add('gamble-loss-explode', 'text-red-400', 'text-5xl', 'font-bold', 'absolute', 'z-[1002]');
             const gameContainerRect = gameContainer.getBoundingClientRect();
             const gambleButtonRect = gambleButton.getBoundingClientRect();
-            const topPos = gambleButtonRect.top - gameContainerRect.top;
+            const topPos = gambleButtonRect.top - gameContainerRect.top + (gambleButtonRect.height / 2);
             const leftPos = gambleButtonRect.left - gameContainerRect.left + (gambleButtonRect.width / 2);
             lossText.style.top = `${topPos}px`;
             lossText.style.left = `${leftPos}px`;
