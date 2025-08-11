@@ -83,13 +83,20 @@
         }
         .super-symbol { animation: sparkle 1.5s infinite; }
 
-        /* --- Falling Coins --- */
-        .coin-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 2;
+        /* --- Falling Coins & Powerups --- */
+        .fall-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden;
         }
+        .coin-container { z-index: 2; }
+        .power-up-fall-container { z-index: 3; }
+
         @keyframes fall { 0% { top: -10%; opacity: 1; } 100% { top: 110%; opacity: 0.5; } }
         .coin {
             position: absolute; top: -10%; font-size: 2rem; animation: fall 3s linear; text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+        .falling-power-up {
+            position: absolute; top: -10%; font-size: 3rem; animation: fall 5s linear;
+            text-shadow: 0 0 15px #fff; cursor: pointer; pointer-events: all;
         }
 
         /* --- Menus & Modals --- */
@@ -124,7 +131,8 @@
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
     <canvas id="background-canvas"></canvas>
-    <div class="coin-container" id="coin-container"></div>
+    <div id="coin-container" class="fall-container coin-container"></div>
+    <div id="power-up-fall-container" class="fall-container power-up-fall-container"></div>
 
     <div id="game-container" class="bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 border-2 transition-all duration-500 relative" style="z-index: 100;">
         
@@ -156,10 +164,10 @@
                 Spin ($5)
             </button>
             <div class="flex w-1/2 space-x-4">
-                <button id="storeButton" class="store-button w-1/2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-4 rounded-lg text-lg shadow-lg focus:outline-none focus:ring-4 focus:ring-purple-400">
+                <button id="storeButton" class="store-button w-1/2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-4 rounded-lg text-base shadow-lg focus:outline-none focus:ring-4 focus:ring-purple-400">
                     Store
                 </button>
-                <button id="settingsButton" class="settings-button w-1/2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-4 rounded-lg text-lg shadow-lg focus:outline-none focus:ring-4 focus:ring-gray-400">
+                <button id="settingsButton" class="settings-button w-1/2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-4 px-4 rounded-lg text-base shadow-lg focus:outline-none focus:ring-4 focus:ring-gray-400">
                     Settings
                 </button>
             </div>
@@ -262,6 +270,7 @@
         const gambleMenuOverlay = document.getElementById('gamble-menu-overlay');
         const powerUpsContainer = document.getElementById('power-ups-container');
         const coinContainer = document.getElementById('coin-container');
+        const powerUpFallContainer = document.getElementById('power-up-fall-container');
 
         // --- Audio Synths ---
         const membraneSynth = new Tone.MembraneSynth().toDestination();
@@ -446,7 +455,7 @@
 
         function createFallingCoin() {
             const coin = document.createElement('div');
-            coin.classList.add('coin'); coin.textContent = '💰'; coin.style.left = `${Math.random() * 100}vw`;
+            coin.classList.add('coin'); coin.textContent = '�'; coin.style.left = `${Math.random() * 100}vw`;
             coin.style.animationDuration = `${2 + Math.random() * 2}s`; coin.style.fontSize = `${1.5 + Math.random()}rem`;
             coinContainer.appendChild(coin);
             setTimeout(() => { coin.remove(); }, 4000);
@@ -479,7 +488,7 @@
             else if (s1.emoji === s2.emoji) { winnings = s1.payout2; winType = 'regular'; winningReels = [slotElements[0], slotElements[1]]; }
             else if (s2.emoji === s3.emoji) { winnings = s2.payout2; winType = 'regular'; winningReels = [slotElements[1], slotElements[2]]; }
             else {
-                const cherryCount = resultSymbols.reduce((count, s, i) => { if (s.emoji === '�') count.indices.push(i); return count; }, { indices: [] });
+                const cherryCount = resultSymbols.reduce((count, s, i) => { if (s.emoji === '🍒') count.indices.push(i); return count; }, { indices: [] });
                 if (cherryCount.indices.length === 2) { winnings = anyTwoCherriesPayout; winType = 'small'; winningReels = cherryCount.indices.map(i => slotElements[i]); }
                 else if (cherryCount.indices.length === 1) { winnings = anyOneCherryPayout; winType = 'small'; winningReels = cherryCount.indices.map(i => slotElements[i]); }
             }
