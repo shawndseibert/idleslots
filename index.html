@@ -305,24 +305,24 @@
 
         <div id="message" class="message-box text-center text-xl font-semibold h-8 mb-3"></div>
         
-        <button id="gambleButton" class="gamble-button w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-5 px-4 rounded-lg text-3xl shadow-lg disabled:bg-gray-600 disabled:opacity-50 mb-3">
-            Gamble
-        </button>
-
-        <div id="action-buttons" class="flex space-x-2 mb-3 opacity-0 animate-pop-in" style="animation-delay: 0.2s;">
-            <button id="frenzyButton" class="frenzy-button w-1/3 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-2 rounded-lg text-sm h-16 flex justify-center items-center disabled:bg-gray-600 disabled:opacity-50" disabled>
-                <span class="text-center">Frenzy <span id="frenzy-coin-count" class="block font-semibold text-xs">(0)</span></span>
+        <div id="action-buttons" class="flex space-x-2 mb-3">
+            <button id="prestigeButton" class="prestige-button w-1/3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-2 rounded-lg text-sm h-16 disabled:opacity-50 text-center">
+                Prestige (100 Wins)
             </button>
             <button id="storeButton" class="store-button w-1/3 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-2 rounded-lg text-sm h-16 flex justify-center items-center">
                  Store
             </button>
-            <button id="prestigeButton" class="prestige-button w-1/3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-2 rounded-lg text-sm h-16 disabled:opacity-50 text-center">
-                Prestige (100 Wins)
+            <button id="frenzyButton" class="frenzy-button w-1/3 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-2 rounded-lg text-sm h-16 flex justify-center items-center disabled:bg-gray-600 disabled:opacity-50" disabled>
+                <span class="text-center">Frenzy <span id="frenzy-coin-count" class="block font-semibold text-xs">(0)</span></span>
             </button>
         </div>
         
-        <button id="spinButton" class="spin-button w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-5 px-4 rounded-lg text-3xl shadow-lg focus:outline-none focus:ring-4 focus:ring-yellow-300 disabled:bg-gray-600 flex items-center justify-center opacity-0 animate-pop-in" style="animation-delay: 0.1s;">
+        <button id="spinButton" class="spin-button w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-5 px-4 rounded-lg text-3xl shadow-lg focus:outline-none focus:ring-4 focus:ring-yellow-300 disabled:bg-gray-600 flex items-center justify-center">
             Spin ($5)
+        </button>
+
+        <button id="gambleButton" class="gamble-button w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-5 px-4 rounded-lg text-3xl shadow-lg disabled:bg-gray-600 disabled:opacity-50 mt-3">
+            Gamble
         </button>
         
     </div>
