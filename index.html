@@ -82,6 +82,13 @@
             50% { text-shadow: 0 0 20px #fff, 0 0 30px #ffc, 0 0 40px #ffc; }
         }
         .super-symbol { animation: sparkle 1.5s infinite; }
+        
+        /* New Frenzy Animations */
+        @keyframes frenzy-glow {
+            0%, 100% { box-shadow: 0 0 5px 2px #f87171, 0 0 10px 4px #ef4444, 0 0 15px 6px #dc2626; }
+            50% { box-shadow: 0 0 10px 4px #f87171, 0 0 15px 6px #ef4444, 0 0 20px 8px #dc2626; }
+        }
+        .frenzy-glow { animation: frenzy-glow 1s ease-in-out infinite alternate; }
 
         /* --- Falling Coins --- */
         .fall-container {
@@ -580,6 +587,7 @@
                         winSynth.triggerAttackRelease("C5", "8n", Tone.now());
                     }
                 }
+                balance += winnings; // Moved balance addition here to ensure it's added regardless of gamble
                 saveGameState();
             }
         }
@@ -644,6 +652,10 @@
         function updateFrenzyButton() {
             frenzyButton.disabled = powerUps.frenzyToken.count <= 0;
             frenzyCoinCount.textContent = powerUps.frenzyToken.count;
+            if (!isFrenzyActive) {
+                frenzyButton.innerHTML = `Frenzy <span id="frenzy-coin-count" class="ml-2 font-semibold bg-red-800 rounded-full px-2 text-xs">${powerUps.frenzyToken.count}</span>`;
+                frenzyButton.classList.remove('frenzy-glow', 'screen-shake');
+            }
         }
 
         function startFrenzy() {
@@ -662,7 +674,8 @@
             createParticles(frenzyIntensity);
 
             frenzyButton.disabled = true;
-            frenzyButton.textContent = 'FRENZY ACTIVE!';
+            frenzyButton.innerHTML = 'FRENZY!';
+            frenzyButton.classList.add('frenzy-glow', 'screen-shake');
 
             setTimeout(() => {
                 isFrenzyActive = false;
@@ -673,7 +686,7 @@
                 }
                 particleGlow.level = originalIntensity;
                 createParticles(originalIntensity);
-                updateFrenzyButton();
+                updateFrenzyButton(); 
             }, 15000);
         }
         
@@ -735,7 +748,7 @@
                 if(isAudioReady) purchaseSynth.triggerAttackRelease("A5", "16n");
                 balance += reward;
                 updateBalanceDisplay();
-                showMessage(`Bonus! +$${reward}`, 'text-yellow-300');
+                showMessage(`Bonus! +$${reward}`, 'text-yellow-300'); // Display what the user got
                 powerUpElement.remove();
                 saveGameState();
             }, { once: true });
