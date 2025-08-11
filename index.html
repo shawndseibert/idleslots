@@ -140,11 +140,14 @@
             animation: pop-in 0.5s ease-out forwards;
         }
 
-        @keyframes win-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        /* --- FIX: Using scale3d promotes animation to its own layer, preventing flicker --- */
+        @keyframes win-pulse { 0%, 100% { transform: scale3d(1, 1, 1); } 50% { transform: scale3d(1.1, 1.1, 1); } }
         .win-pulse { animation: win-pulse 0.5s ease-in-out; }
 
         @keyframes jackpot-glow {
-            0% { transform: scale(1) rotate(0); } 50% { transform: scale(1.15) rotate(-3deg); } 100% { transform: scale(1) rotate(0); }
+            0% { transform: scale3d(1, 1, 1) rotate(0); } 
+            50% { transform: scale3d(1.15, 1.15, 1) rotate(-3deg); } 
+            100% { transform: scale3d(1, 1, 1) rotate(0); }
         }
         .jackpot-glow { animation: jackpot-glow 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
         
@@ -560,7 +563,7 @@
             spinIntervals.forEach(intervalId => clearInterval(intervalId));
             spinIntervals = [];
 
-            clearInterval(autoSpinnerInterval);
+            // The line that cleared the autoSpinnerInterval has been removed from here.
 
             isSpinning = false;
         }
